@@ -19,7 +19,6 @@ function App() {
   const [countryCode, setCountryCode] = useState('+256');
   const [phoneOtp, setPhoneOtp] = useState('');
   const [phoneStep, setPhoneStep] = useState(false);
-  const [displayName, setDisplayName] = useState('');
   const [notice, setNotice] = useState('');
 
   const [people, setPeople] = useState([]);
@@ -35,7 +34,6 @@ function App() {
   const [call, setCall] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState('');
-  const [username, setUsername] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [theme, setTheme] = useState(
     () => localStorage.getItem('uchat-theme') || 'light'
@@ -50,8 +48,8 @@ function App() {
   const channelRef = useRef(null);
   const seenRef = useRef(new Set());
 
-  const tell = (s) => {
-    setNotice(s);
+  const tell = (message) => {
+    setNotice(message);
     setTimeout(() => setNotice(''), 4500);
   };
 
@@ -63,11 +61,15 @@ function App() {
   useEffect(() => {
     if (!supabase) return;
 
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+    });
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -78,14 +80,14 @@ function App() {
     let live = true;
 
     (async () => {
-      let { data: p } = await supabase
+      let { data: currentProfile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle();
 
-      if (!p) {
-        p = {
+      if (!currentProfile) {
+        currentProfile = {
           id: session.user.id,
           display_name:
             session.user.user_metadata?.display_name ||
@@ -93,13 +95,13 @@ function App() {
             'User'
         };
 
-        await supabase.from('profiles').upsert(p);
+        await supabase.from('profiles').upsert(currentProfile);
       }
 
       if (live) {
-        setProfile(p);
-        setNewDisplayName(p.display_name || '');
-        setNewUsername(p.username || '');
+        setProfile(currentProfile);
+        setNewDisplayName(currentProfile.display_name || '');
+        setNewUsername(currentProfile.username || '');
       }
 
       await loadPeople();
@@ -136,12 +138,12 @@ function App() {
     }
   }
 
-  async function postStatus(e) {
-    e.preventDefault();
+  async function postStatus(event) {
+    event.preventDefault();
 
     const body = statusText.trim();
-    if (!body) return;
 
+    if (!body) return;
     if (body.length > 280) {
       return tell('Status must be 280 characters or fewer.');
     }
@@ -177,29 +179,28 @@ function App() {
       if (!picked.length) return;
 
       const names = picked
-        .flatMap((x) => x.name || [])
-        .map((x) => x.toLowerCase());
+        .flatMap((contact) => contact.name || [])
+        .map((name) => name.toLowerCase());
 
       const matches = people.filter(
-        (p) =>
-          p.id !== session.user.id &&
-          names.includes((p.display_name || '').toLowerCase())
+        (person) =>
+          person.id !== session.user.id &&
+          names.includes((person.display_name || '').toLowerCase())
       );
 
+      setTab('people');
+
       if (matches.length) {
-        setTab('people');
         tell(
-          'Found ' +
-            matches.length +
-            ' matching UChat contact(s). Search results are available in People.'
+          `Found ${matches.length} matching UChat contact(s). Search results are available in People.`
         );
       } else {
         tell(
-          'No matching UChat accounts found for selected contact names. Try searching their UChat username.'
+          'No matching UChat accounts found. Try searching by username.'
         );
       }
-    } catch (e) {
-      if (e.name !== 'AbortError') {
+    } catch (error) {
+      if (error.name !== 'AbortError') {
         tell('Could not access contacts. You can search by username instead.');
       }
     }
@@ -216,8 +217,8 @@ function App() {
       return;
     }
 
-    const base = (data || []).map((x) => x.rooms).filter(Boolean);
-    const ids = [...new Set(base.map((r) => r.id))];
+    const base = (data || []).map((item) => item.rooms).filter(Boolean);
+    const ids = [...new Set(base.map((room) => room.id))];
 
     if (!ids.length) {
       setRooms([]);
@@ -229,19 +230,21 @@ function App() {
       .select('room_id,user_id')
       .in('room_id', ids);
 
-    const mapped = base.map((r) => {
-      if (r.is_group) return r;
+    const mapped = base.map((room) => {
+      if (room.is_group) return room;
 
       const other = (members || []).find(
-        (m) =>
-          m.room_id === r.id &&
-          m.user_id !== session?.user?.id
+        (member) =>
+          member.room_id === room.id &&
+          member.user_id !== session?.user?.id
       );
 
-      const person = people.find((p) => p.id === other?.user_id);
+      const person = people.find(
+        (item) => item.id === other?.user_id
+      );
 
       return {
-        ...r,
+        ...room,
         display_title: person?.display_name || 'Direct chat'
       };
     });
@@ -270,7 +273,7 @@ function App() {
       }
     })();
 
-    const ch = supabase
+    const channel = supabase
       .channel('room-' + active.id)
       .on(
         'postgres_changes',
@@ -281,10 +284,10 @@ function App() {
           filter: 'room_id=eq.' + active.id
         },
         (payload) => {
-          setMessages((old) =>
-            old.some((m) => m.id === payload.new.id)
-              ? old
-              : [...old, payload.new]
+          setMessages((oldMessages) =>
+            oldMessages.some((message) => message.id === payload.new.id)
+              ? oldMessages
+              : [...oldMessages, payload.new]
           );
 
           if (payload.new.sender_id !== session.user.id) {
@@ -296,7 +299,7 @@ function App() {
 
     return () => {
       alive = false;
-      supabase.removeChannel(ch);
+      supabase.removeChannel(channel);
     };
   }, [active?.id, session?.user?.id]);
 
@@ -305,29 +308,31 @@ function App() {
   }, [messages]);
 
   async function markRead(rows) {
-    for (const m of rows) {
+    for (const message of rows) {
       if (
-        m.sender_id === session?.user?.id ||
-        seenRef.current.has(m.id)
+        message.sender_id === session?.user?.id ||
+        seenRef.current.has(message.id)
       ) {
         continue;
       }
 
-      seenRef.current.add(m.id);
+      seenRef.current.add(message.id);
 
-      const ids = Array.isArray(m.read_by) ? m.read_by : [];
+      const readers = Array.isArray(message.read_by)
+        ? message.read_by
+        : [];
 
-      if (!ids.includes(session.user.id)) {
+      if (!readers.includes(session.user.id)) {
         await supabase
           .from('messages')
-          .update({ read_by: [...ids, session.user.id] })
-          .eq('id', m.id);
+          .update({ read_by: [...readers, session.user.id] })
+          .eq('id', message.id);
       }
     }
   }
 
-  async function authSubmit(e) {
-    e.preventDefault();
+  async function authSubmit(event) {
+    event.preventDefault();
     setNotice('');
 
     if (!supabase) return;
@@ -373,8 +378,8 @@ function App() {
     if (error) tell(error.message);
   }
 
-  async function sendPhoneCode(e) {
-    e?.preventDefault();
+  async function sendPhoneCode(event) {
+    event?.preventDefault();
 
     if (!supabase) return;
 
@@ -408,8 +413,8 @@ function App() {
     tell('Verification code sent to ' + fullPhone + '.');
   }
 
-  async function verifyPhoneCode(e) {
-    e?.preventDefault();
+  async function verifyPhoneCode(event) {
+    event?.preventDefault();
 
     if (!supabase) return;
 
@@ -433,8 +438,8 @@ function App() {
     tell('Phone number verified. Welcome to UChat.');
   }
 
-  async function saveDisplayName(e) {
-    e.preventDefault();
+  async function saveDisplayName(event) {
+    event.preventDefault();
 
     const value = newDisplayName.trim();
     const handle = newUsername.trim().toLowerCase().replace(/^@/, '');
@@ -465,8 +470,8 @@ function App() {
       return;
     }
 
-    setProfile((old) => ({
-      ...old,
+    setProfile((oldProfile) => ({
+      ...oldProfile,
       display_name: value,
       username: handle
     }));
@@ -503,14 +508,19 @@ function App() {
 
     await loadRooms();
 
-    const { data: r } = await supabase
+    const { data: room } = await supabase
       .from('rooms')
       .select('*')
       .eq('id', data)
       .single();
 
+    if (!room) {
+      tell('Could not load the conversation.');
+      return;
+    }
+
     setActive({
-      ...r,
+      ...room,
       display_title: person.display_name || 'Direct chat'
     });
 
@@ -518,8 +528,8 @@ function App() {
     setShowNew(false);
   }
 
-  async function createGroup(e) {
-    e.preventDefault();
+  async function createGroup(event) {
+    event.preventDefault();
 
     if (!groupName.trim() || !selected.length) return;
 
@@ -540,7 +550,7 @@ function App() {
 
     const members = [session.user.id, ...selected];
 
-    const { error: me } = await supabase
+    const { error: memberError } = await supabase
       .from('room_members')
       .insert(
         members.map((user_id) => ({
@@ -549,8 +559,8 @@ function App() {
         }))
       );
 
-    if (me) {
-      tell(me.message);
+    if (memberError) {
+      tell(memberError.message);
       return;
     }
 
@@ -562,8 +572,8 @@ function App() {
     tell('Group created.');
   }
 
-  async function sendMessage(e) {
-    e?.preventDefault();
+  async function sendMessage(event) {
+    event?.preventDefault();
 
     if (!active || !draft.trim()) return;
 
@@ -585,9 +595,9 @@ function App() {
     }
   }
 
-  async function uploadImage(e) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
+  async function uploadImage(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
 
     if (!file || !active) return;
 
@@ -603,12 +613,12 @@ function App() {
       `${session.user.id}/${crypto.randomUUID()}-` +
       file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
-    const { error: up } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('chat-images')
       .upload(path, file, { upsert: false });
 
-    if (up) {
-      return tell('Image upload failed: ' + up.message);
+    if (uploadError) {
+      return tell('Image upload failed: ' + uploadError.message);
     }
 
     const { data } = supabase.storage
@@ -641,113 +651,123 @@ function App() {
         video: kind === 'video'
       });
 
-      localRef.current.srcObject = stream;
+      if (localRef.current) localRef.current.srcObject = stream;
       setCall({ kind, status: 'Calling…' });
 
-      const pc = new RTCPeerConnection({
+      const connection = new RTCPeerConnection({
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' }
         ]
       });
 
-      pcRef.current = pc;
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      pcRef.current = connection;
+      stream.getTracks().forEach((track) => {
+        connection.addTrack(track, stream);
+      });
 
-      pc.ontrack = (e) => {
+      connection.ontrack = (event) => {
         if (remoteRef.current) {
-          remoteRef.current.srcObject = e.streams[0];
+          remoteRef.current.srcObject = event.streams[0];
         }
       };
 
-      const targetChannel = 'call-room-' + active.id;
-
-      const ch = supabase.channel(targetChannel, {
+      const channel = supabase.channel('call-room-' + active.id, {
         config: {
           private: true,
           broadcast: { self: false }
         }
       });
 
-      channelRef.current = ch;
+      channelRef.current = channel;
 
-      ch.on('broadcast', { event: 'signal' }, async ({ payload }) => {
+      channel.on('broadcast', { event: 'signal' }, async ({ payload }) => {
         if (payload.from === session.user.id) return;
 
-        if (payload.type === 'offer') {
-          await pc.setRemoteDescription(payload.sdp);
+        try {
+          if (payload.type === 'offer') {
+            await connection.setRemoteDescription(payload.sdp);
 
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
+            const answer = await connection.createAnswer();
+            await connection.setLocalDescription(answer);
 
-          await ch.send({
-            type: 'broadcast',
-            event: 'signal',
-            payload: {
-              type: 'answer',
-              sdp: pc.localDescription,
-              from: session.user.id
-            }
-          });
-        } else if (
-          payload.type === 'answer' &&
-          pc.signalingState === 'have-local-offer'
-        ) {
-          await pc.setRemoteDescription(payload.sdp);
-        } else if (payload.type === 'ice' && payload.candidate) {
-          try {
-            await pc.addIceCandidate(payload.candidate);
-          } catch {}
-        } else if (payload.type === 'hangup') {
-          endCall(false);
-        }
-      }).subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-
-          await ch.send({
-            type: 'broadcast',
-            event: 'signal',
-            payload: {
-              type: 'offer',
-              sdp: pc.localDescription,
-              from: session.user.id
-            }
-          });
+            await channel.send({
+              type: 'broadcast',
+              event: 'signal',
+              payload: {
+                type: 'answer',
+                sdp: connection.localDescription,
+                from: session.user.id
+              }
+            });
+          } else if (
+            payload.type === 'answer' &&
+            connection.signalingState === 'have-local-offer'
+          ) {
+            await connection.setRemoteDescription(payload.sdp);
+          } else if (payload.type === 'ice' && payload.candidate) {
+            await connection.addIceCandidate(payload.candidate);
+          } else if (payload.type === 'hangup') {
+            await endCall(false);
+          }
+        } catch (error) {
+          tell('Call connection error: ' + error.message);
         }
       });
 
-      pc.onicecandidate = (e) => {
-        if (e.candidate) {
-          ch.send({
+      connection.onicecandidate = (event) => {
+        if (event.candidate) {
+          channel.send({
             type: 'broadcast',
             event: 'signal',
             payload: {
               type: 'ice',
-              candidate: e.candidate,
+              candidate: event.candidate,
               from: session.user.id
             }
           });
         }
       };
 
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'connected') {
-          setCall((c) => c ? { ...c, status: 'Connected' } : c);
+      connection.onconnectionstatechange = () => {
+        if (connection.connectionState === 'connected') {
+          setCall((current) =>
+            current ? { ...current, status: 'Connected' } : current
+          );
         }
 
         if (
-          ['failed', 'disconnected'].includes(pc.connectionState)
+          ['failed', 'disconnected'].includes(connection.connectionState)
         ) {
-          setCall((c) =>
-            c ? { ...c, status: 'Connection issue' } : c
+          setCall((current) =>
+            current ? { ...current, status: 'Connection issue' } : current
           );
         }
       };
-    } catch (e) {
+
+      channel.subscribe(async (status) => {
+        if (status !== 'SUBSCRIBED') return;
+
+        try {
+          const offer = await connection.createOffer();
+          await connection.setLocalDescription(offer);
+
+          await channel.send({
+            type: 'broadcast',
+            event: 'signal',
+            payload: {
+              type: 'offer',
+              sdp: connection.localDescription,
+              from: session.user.id
+            }
+          });
+        } catch (error) {
+          tell('Could not create call offer: ' + error.message);
+        }
+      });
+    } catch (error) {
       tell(
         'Could not start call. Check microphone/camera permissions. ' +
-        e.message
+        error.message
       );
       await endCall();
     }
@@ -775,8 +795,8 @@ function App() {
     pcRef.current?.close();
     pcRef.current = null;
 
-    localRef.current?.srcObject?.getTracks().forEach((t) => t.stop());
-    remoteRef.current?.srcObject?.getTracks().forEach((t) => t.stop());
+    localRef.current?.srcObject?.getTracks().forEach((track) => track.stop());
+    remoteRef.current?.srcObject?.getTracks().forEach((track) => track.stop());
 
     if (localRef.current) localRef.current.srcObject = null;
     if (remoteRef.current) remoteRef.current.srcObject = null;
@@ -852,14 +872,14 @@ function App() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(event) => setEmail(event.target.value)}
                 placeholder="Email address"
                 required
               />
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(event) => setPassword(event.target.value)}
                 placeholder="Password (at least 8 characters)"
                 minLength={8}
                 required
@@ -877,7 +897,7 @@ function App() {
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 value={phoneOtp}
-                onChange={(e) => setPhoneOtp(e.target.value)}
+                onChange={(event) => setPhoneOtp(event.target.value)}
                 placeholder="SMS verification code"
                 required
               />
@@ -896,7 +916,7 @@ function App() {
                 <select
                   aria-label="Country calling code"
                   value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
+                  onChange={(event) => setCountryCode(event.target.value)}
                 >
                   <option value="+256">🇺🇬 Uganda (+256)</option>
                   <option value="+254">🇰🇪 Kenya (+254)</option>
@@ -937,7 +957,7 @@ function App() {
                   inputMode="tel"
                   autoComplete="tel-national"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(event) => setPhone(event.target.value)}
                   placeholder="Phone number"
                   required
                 />
@@ -1003,27 +1023,20 @@ function App() {
   const myId = session.user.id;
 
   const shownPeople = people.filter(
-    (p) =>
-      p.id !== myId &&
+    (person) =>
+      person.id !== myId &&
       (
-        (p.display_name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (p.username || '')
+        (person.display_name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (person.username || '')
           .toLowerCase()
           .includes(search.toLowerCase().replace(/^@/, ''))
       )
   );
 
   const shownRooms = rooms.filter(
-    (r) =>
-      (r.name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (
-        !r.is_group &&
-        people.some(
-          (p) =>
-            r.name?.toLowerCase().includes(p.display_name?.toLowerCase()) &&
-            p.display_name?.toLowerCase().includes(search.toLowerCase())
-        )
-      )
+    (room) =>
+      (room.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (room.display_title || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -1038,7 +1051,7 @@ function App() {
 
         <div className="topright">
           <span className="userlabel">
-            {profile?.display_name || session.user.email}
+            {profile?.display_name || session.user.email || session.user.phone}
           </span>
 
           <button
@@ -1085,7 +1098,7 @@ function App() {
             <Search size={19} />
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder={
                 tab === 'chats'
                   ? 'Ask UChat or Search'
@@ -1098,27 +1111,21 @@ function App() {
             />
           </div>
 
-          {/* Corrected filter section: the closing brace is required here. */}
+          {/* Correctly closed conditional: this was the filter JSX issue. */}
           {tab === 'chats' && (
             <div className="wa-filters">
               <button className="selected">All</button>
               <button
-                onClick={() =>
-                  tell('Unread filtering is not implemented yet.')
-                }
+                onClick={() => tell('Unread filtering is not implemented yet.')}
               >
                 Unread
               </button>
               <button
-                onClick={() =>
-                  tell('Favorites are not implemented yet.')
-                }
+                onClick={() => tell('Favorites are not implemented yet.')}
               >
                 Favorites
               </button>
-              <button onClick={() => setTab('groups')}>
-                Groups
-              </button>
+              <button onClick={() => setTab('groups')}>Groups</button>
               <button
                 className="filter-add"
                 onClick={() => {
@@ -1146,27 +1153,25 @@ function App() {
               </div>
 
               <div className="roomlist">
-                {shownRooms.map((r) => (
+                {shownRooms.map((room) => (
                   <button
-                    key={r.id}
-                    className={`roomrow ${
-                      active?.id === r.id ? 'chosen' : ''
-                    }`}
-                    onClick={() => setActive(r)}
+                    key={room.id}
+                    className={`roomrow ${active?.id === room.id ? 'chosen' : ''}`}
+                    onClick={() => setActive(room)}
                   >
                     <span className="avatar">
-                      {r.is_group
+                      {room.is_group
                         ? <Users size={18} />
-                        : (r.name || 'C')[0].toUpperCase()}
+                        : (room.display_title || room.name || 'C')[0].toUpperCase()}
                     </span>
                     <span className="roomtext">
                       <strong>
-                        {r.is_group
-                          ? (r.name || 'Group')
-                          : (r.display_title || 'Direct chat')}
+                        {room.is_group
+                          ? (room.name || 'Group')
+                          : (room.display_title || room.name || 'Direct chat')}
                       </strong>
                       <small>
-                        {r.is_group ? 'Group chat' : 'Private chat'}
+                        {room.is_group ? 'Group chat' : 'Private chat'}
                       </small>
                     </span>
                   </button>
@@ -1194,26 +1199,24 @@ function App() {
 
               <div className="roomlist">
                 {shownRooms
-                  .filter((r) => r.is_group)
-                  .map((r) => (
+                  .filter((room) => room.is_group)
+                  .map((room) => (
                     <button
-                      key={r.id}
-                      className={`roomrow ${
-                        active?.id === r.id ? 'chosen' : ''
-                      }`}
-                      onClick={() => setActive(r)}
+                      key={room.id}
+                      className={`roomrow ${active?.id === room.id ? 'chosen' : ''}`}
+                      onClick={() => setActive(room)}
                     >
                       <span className="avatar">
                         <UsersRound size={18} />
                       </span>
                       <span className="roomtext">
-                        <strong>{r.name || 'Group'}</strong>
+                        <strong>{room.name || 'Group'}</strong>
                         <small>Group conversation</small>
                       </span>
                     </button>
                   ))}
 
-                {!shownRooms.some((r) => r.is_group) && (
+                {!shownRooms.some((room) => room.is_group) && (
                   <p className="empty">
                     No groups yet. Use + to create one.
                   </p>
@@ -1227,32 +1230,29 @@ function App() {
               <form className="statusform" onSubmit={postStatus}>
                 <textarea
                   value={statusText}
-                  onChange={(e) => setStatusText(e.target.value)}
+                  onChange={(event) => setStatusText(event.target.value)}
                   placeholder="Share a status update..."
                   maxLength={280}
                 />
-                <button
-                  className="primary"
-                  disabled={!statusText.trim()}
-                >
+                <button className="primary" disabled={!statusText.trim()}>
                   Post status
                 </button>
               </form>
 
               <div className="roomlist">
-                {statuses.map((st) => (
-                  <div className="statusrow" key={st.id}>
+                {statuses.map((status) => (
+                  <div className="statusrow" key={status.id}>
                     <span className="avatar">
                       <Activity size={16} />
                     </span>
                     <div>
                       <strong>
-                        {people.find((p) => p.id === st.user_id)
+                        {people.find((person) => person.id === status.user_id)
                           ?.display_name || 'UChat user'}
                       </strong>
-                      <p>{st.body}</p>
+                      <p>{status.body}</p>
                       <small>
-                        {new Date(st.created_at).toLocaleString()}
+                        {new Date(status.created_at).toLocaleString()}
                       </small>
                     </div>
                   </div>
@@ -1299,20 +1299,19 @@ function App() {
               </button>
 
               <div className="roomlist">
-                {shownPeople.map((p) => (
+                {shownPeople.map((person) => (
                   <button
-                    key={p.id}
+                    key={person.id}
                     className="roomrow"
-                    onClick={() => openDirect(p)}
+                    onClick={() => openDirect(person)}
                   >
                     <span className="avatar">
-                      {(p.display_name || 'U')[0].toUpperCase()}
+                      {(person.display_name || 'U')[0].toUpperCase()}
                     </span>
                     <span className="roomtext">
-                      <strong>{p.display_name || 'UChat user'}</strong>
+                      <strong>{person.display_name || 'UChat user'}</strong>
                       <small>
-                        @{p.username || 'username-not-set'} · Start a
-                        conversation
+                        @{person.username || 'username-not-set'} · Start a conversation
                       </small>
                     </span>
                     <CirclePlus size={17} />
@@ -1332,9 +1331,7 @@ function App() {
         </aside>
 
         <section
-          className={`chatpane ${!active ? 'no-active' : ''} ${
-            active ? 'show-mobile' : ''
-          }`}
+          className={`chatpane ${!active ? 'no-active' : ''} ${active ? 'show-mobile' : ''}`}
         >
           {active ? (
             <>
@@ -1349,7 +1346,7 @@ function App() {
                 <span className="avatar">
                   {active.is_group
                     ? <Users size={18} />
-                    : (active.name || 'C')[0].toUpperCase()}
+                    : (active.display_title || active.name || 'C')[0].toUpperCase()}
                 </span>
 
                 <div className="chatheadtext">
@@ -1359,9 +1356,7 @@ function App() {
                       : (active.display_title || 'Direct chat')}
                   </strong>
                   <small>
-                    {active.is_group
-                      ? 'Group conversation'
-                      : 'Messages are live'}
+                    {active.is_group ? 'Group conversation' : 'Messages are live'}
                   </small>
                 </div>
 
@@ -1382,48 +1377,44 @@ function App() {
               </div>
 
               <div className="messages">
-                {messages.map((m) => (
+                {messages.map((message) => (
                   <div
-                    key={m.id}
-                    className={`bubblewrap ${
-                      m.sender_id === myId ? 'mine' : 'theirs'
-                    }`}
+                    key={message.id}
+                    className={`bubblewrap ${message.sender_id === myId ? 'mine' : 'theirs'}`}
                   >
                     <div className="bubble">
-                      {m.sender_id !== myId && active.is_group && (
+                      {message.sender_id !== myId && active.is_group && (
                         <small className="sender">
-                          {people.find((p) => p.id === m.sender_id)
+                          {people.find((person) => person.id === message.sender_id)
                             ?.display_name || 'Member'}
                         </small>
                       )}
 
-                      {m.image_url && (
+                      {message.image_url && (
                         <a
-                          href={m.image_url}
+                          href={message.image_url}
                           target="_blank"
                           rel="noreferrer"
                         >
                           <img
                             className="chatimage"
-                            src={m.image_url}
+                            src={message.image_url}
                             alt="Shared image"
                           />
                         </a>
                       )}
 
-                      {m.body && <div>{m.body}</div>}
+                      {message.body && <div>{message.body}</div>}
 
                       <div className="meta">
-                        {new Date(m.created_at).toLocaleTimeString([], {
+                        {new Date(message.created_at).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit'
                         })}
-                        {m.sender_id === myId && (
+                        {message.sender_id === myId && (
                           <CheckCheck
                             size={14}
-                            className={
-                              (m.read_by || []).length > 1 ? 'read' : ''
-                            }
+                            className={(message.read_by || []).length > 1 ? 'read' : ''}
                           />
                         )}
                       </div>
@@ -1453,7 +1444,7 @@ function App() {
 
                 <input
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(event) => setDraft(event.target.value)}
                   placeholder="Type a message"
                   maxLength={4000}
                 />
@@ -1548,7 +1539,7 @@ function App() {
           <form
             className="modal"
             onSubmit={saveDisplayName}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="modalhead">
               <h2>Settings</h2>
@@ -1564,40 +1555,34 @@ function App() {
             <label className="settinglabel">Display name</label>
             <input
               value={newDisplayName}
-              onChange={(e) => setNewDisplayName(e.target.value)}
+              onChange={(event) => setNewDisplayName(event.target.value)}
               placeholder="Your display name"
               maxLength={40}
               required
             />
             <p className="hint">
-              You can change how your name appears to other UChat users at
-              any time.
+              You can change how your name appears to other UChat users at any time.
             </p>
 
             <label className="settinglabel">Username</label>
             <input
               value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
+              onChange={(event) => setNewUsername(event.target.value)}
               placeholder="username"
               maxLength={24}
               required
             />
             <p className="hint">
-              Unique username, 3–24 characters. Letters, numbers and
-              underscores only.
+              Unique username, 3–24 characters. Letters, numbers and underscores only.
             </p>
 
             <label className="settinglabel">Appearance</label>
             <button
               type="button"
               className="themebutton"
-              onClick={() =>
-                setTheme(theme === 'light' ? 'dark' : 'light')
-              }
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
             >
-              {theme === 'light'
-                ? <Moon size={17} />
-                : <Sun size={17} />}
+              {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
               {' '}Switch to {theme === 'light' ? 'dark' : 'light'} mode
             </button>
 
@@ -1611,7 +1596,7 @@ function App() {
           <form
             className="modal"
             onSubmit={createGroup}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="modalhead">
               <h2>Create a group</h2>
@@ -1627,7 +1612,7 @@ function App() {
             <input
               placeholder="Group name"
               value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
+              onChange={(event) => setGroupName(event.target.value)}
               maxLength={60}
               required
             />
@@ -1636,21 +1621,21 @@ function App() {
 
             <div className="memberchoices">
               {people
-                .filter((p) => p.id !== myId)
-                .map((p) => (
-                  <label key={p.id}>
+                .filter((person) => person.id !== myId)
+                .map((person) => (
+                  <label key={person.id}>
                     <input
                       type="checkbox"
-                      checked={selected.includes(p.id)}
-                      onChange={(e) =>
+                      checked={selected.includes(person.id)}
+                      onChange={(event) =>
                         setSelected((old) =>
-                          e.target.checked
-                            ? [...old, p.id]
-                            : old.filter((id) => id !== p.id)
+                          event.target.checked
+                            ? [...old, person.id]
+                            : old.filter((id) => id !== person.id)
                         )
                       }
                     />
-                    {p.display_name || 'UChat user'}
+                    {person.display_name || 'UChat user'}
                   </label>
                 ))}
             </div>
@@ -1665,13 +1650,14 @@ function App() {
       {call && (
         <div className="callback">
           <div className="callwindow">
-            <button className="callclose" onClick={() => endCall()}>
+            <button
+              className="callclose"
+              onClick={() => endCall()}
+            >
               <X />
             </button>
 
-            <h2>
-              {call.kind === 'video' ? 'Video call' : 'Voice call'}
-            </h2>
+            <h2>{call.kind === 'video' ? 'Video call' : 'Voice call'}</h2>
             <p>{call.status}</p>
 
             <video
@@ -1695,9 +1681,8 @@ function App() {
             </div>
 
             <small>
-              Allow microphone/camera access. Calls may fail behind
-              restrictive NATs; a TURN server is needed for reliable
-              production calls.
+              Allow microphone/camera access. Calls may fail behind restrictive
+              NATs; a TURN server is needed for reliable production calls.
             </small>
           </div>
         </div>
