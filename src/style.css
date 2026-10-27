@@ -36,3 +36,58 @@
 :root[data-theme='dark'] .floating-nav .nav-settings{border-left-color:rgba(211,241,220,.12)}
 @media(max-width:720px){.workspace{padding:10px 10px 24px!important;min-height:calc(100dvh - 68px)}.sidebar,.chatpane{border-radius:20px!important}.floating-nav-wrap{bottom:max(10px,env(safe-area-inset-bottom));padding:0 14px}.floating-nav{width:100%;padding:7px 7px;border-radius:22px}.floating-nav button{font-size:10px;padding:8px 2px}.floating-nav button svg{width:20px;height:20px}.app{padding-bottom:92px}}
 @media(min-width:721px){.floating-nav-wrap{bottom:20px}.roomlist{padding-bottom:100px!important}}
+
+/* WhatsApp-inspired dark mobile chat interface */
+:root{color-scheme:dark;background:#080a09;color:#f5f5f5}
+:root body{background:#080a09;color:#f5f5f5}
+.app{height:100dvh;min-height:100dvh;padding-bottom:96px;background:#080a09!important;color:#f5f5f5}
+.topbar{height:52px;padding:0 22px;background:#080a09!important;box-shadow:none;border:0;color:#f5f5f5}
+.brandmini{font-size:18px}.brandmini .logo{width:32px;height:32px;background:#102d22;border:1px solid #1ebd78}
+.topright .iconbtn{color:#f5f5f5}
+.workspace{min-height:0;gap:12px;padding:0 14px 18px!important;background:#080a09!important}
+.sidebar,.chatpane{background:#080a09!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;color:#f5f5f5}
+.sidebar{width:420px;min-width:300px}
+.wa-chat-title{display:flex;align-items:center;justify-content:space-between;padding:10px 4px 16px}
+.wa-chat-title h1{font-size:38px;letter-spacing:-1.3px;margin:0;color:#f7f7f7;font-weight:750}
+.wa-newchat{width:42px;height:42px;border:0;border-radius:50%;background:#20c96b;color:#04160c;display:grid;place-items:center}
+.searchbox{min-height:44px;margin:0 0 14px!important;padding:0 14px!important;border:0!important;border-radius:28px!important;background:#222!important;color:#a6a6a6!important}
+.searchbox input{color:#f6f6f6!important}.searchbox input::placeholder{color:#929292}
+.wa-filters{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:0 0 13px;scrollbar-width:none}.wa-filters::-webkit-scrollbar{display:none}
+.wa-filters button{white-space:nowrap;border:1px solid #303230;background:#111211;color:#b7b7b7;border-radius:24px;padding:8px 15px;font-size:13px;font-weight:600}
+.wa-filters button.selected{background:#123b2b;border-color:#245a41;color:#9be3bb}
+.wa-filters button.filter-add{width:38px;height:38px;padding:0;display:grid;place-items:center}
+.listheading{font-size:11px;letter-spacing:1px;color:#858985;padding:8px 6px!important}
+.roomlist{padding:0 0 100px!important}
+.roomrow{min-height:84px;display:flex!important;gap:13px!important;align-items:center!important;padding:12px 4px!important;border:0!important;border-radius:0!important;border-bottom:1px solid #262726!important;background:transparent!important;color:#f5f5f5!important;text-align:left}
+.roomrow:hover,.roomrow.chosen{background:#171918!important}
+.avatar{width:54px!important;height:54px!important;flex:0 0 54px!important;border-radius:50%!important;background:#27332c!important;color:#d8e9df!important;border:1px solid #343a36!important;font-size:21px}
+.roomtext{gap:5px!important;min-width:0}.roomtext strong{font-size:16px;font-weight:600;color:#f5f5f5}.roomtext small{font-size:13px;color:#929592!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:250px}
+.sidebarfoot{color:#747875!important;background:transparent!important}
+.chatpane{border-left:1px solid #202321!important}
+.chathead{background:#111312!important;color:#f5f5f5!important;border-bottom:1px solid #292c2a!important}
+.messages{background:#080a09!important}
+.bubble.theirs{background:#222624!important;color:#f2f2f2!important}.bubble.mine{background:#075e48!important;color:#fff!important}
+.composer{background:#111312!important;border-top:1px solid #292c2a!important}.composer input{background:#222624!important;color:#f5f5f5!important}
+.emptychat{background:#080a09!important;color:#f5f5f5!important}.emptychat p,.emptychat small{color:#929a94!important}
+.encrypted{background:#151816!important;color:#929a94!important}
+.floating-nav-wrap{bottom:max(12px,env(safe-area-inset-bottom));padding:0 18px}
+.floating-nav.wa-dock{width:min(640px,100%);gap:2px;padding:8px 8px;border:1px solid rgba(235,245,238,.19);border-radius:38px;background:rgba(90,95,91,.48);box-shadow:0 12px 34px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.22);backdrop-filter:blur(30px) saturate(165%);-webkit-backdrop-filter:blur(30px) saturate(165%)}
+.floating-nav.wa-dock button{min-height:58px;gap:4px;color:#f0f0f0;font-size:11px;font-weight:500;border-radius:30px;padding:5px 3px}
+.floating-nav.wa-dock button svg{width:25px;height:25px;stroke-width:1.8}
+.floating-nav.wa-dock button.active{background:rgba(8,10,9,.82);color:#fff}
+.floating-nav.wa-dock button.active:before{display:none}
+.floating-nav.wa-dock .nav-settings{border:0}
+.you-avatar{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#b9d6c6;color:#10251a;font-weight:700;font-size:12px}
+.modalback{background:rgba(0,0,0,.55)!important}.modal{background:rgba(24,28,25,.95)!important;color:#f5f5f5;border-color:#383d39!important}
+.modal input,.modal textarea{background:#151816!important;color:#f5f5f5!important;border-color:#3b403d!important}
+.settinglabel,.hint{color:#c1c9c3!important}
+.primary{background:#20c96b!important;color:#04160c!important}
+.call-list-placeholder{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:25px;color:#dce7df}.call-list-placeholder p{color:#969e98;max-width:240px;font-size:13px}
+@media(max-width:720px){
+ .topbar{height:42px;padding:0 14px}.brandmini{font-size:16px}.topright{gap:7px}.userlabel{max-width:95px;font-size:11px}
+ .workspace{padding:0 14px 10px!important;gap:0}.sidebar{width:100%;min-width:0}.chatpane{display:none}.chatpane.show-mobile{display:flex;position:fixed;inset:42px 0 0;z-index:50;border:0!important}.sidebar.hide-mobile{display:none}
+ .wa-chat-title{padding:8px 2px 15px}.wa-chat-title h1{font-size:38px}.wa-newchat{width:42px;height:42px}
+ .roomrow{min-height:84px;padding:11px 2px!important}.avatar{width:54px!important;height:54px!important;flex-basis:54px!important}.roomtext strong{font-size:16px}.roomtext small{max-width:calc(100vw - 140px)}
+ .floating-nav-wrap{bottom:max(9px,env(safe-area-inset-bottom));padding:0 18px}.floating-nav.wa-dock{padding:6px 6px;border-radius:36px}.floating-nav.wa-dock button{min-height:57px;font-size:10px}
+ .app{padding-bottom:86px}
+}
