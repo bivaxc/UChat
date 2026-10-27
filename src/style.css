@@ -91,3 +91,12 @@
  .floating-nav-wrap{bottom:max(9px,env(safe-area-inset-bottom));padding:0 18px}.floating-nav.wa-dock{padding:6px 6px;border-radius:36px}.floating-nav.wa-dock button{min-height:57px;font-size:10px}
  .app{padding-bottom:86px}
 }
+/* International phone sign-in */
+.auth-methods{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 14px;padding:4px;border-radius:12px;background:#edf2ef}
+.auth-methods button{border:0;border-radius:9px;padding:10px 8px;background:transparent;color:#64736b;font-weight:650;font-size:14px}
+.auth-methods button.chosen{background:#fff;color:#087c69;box-shadow:0 1px 4px #00000012}
+.phone-entry{display:grid;grid-template-columns:minmax(125px, .9fr) minmax(0,1.1fr);gap:8px}
+.phone-entry select,.phone-entry input{width:100%;min-width:0;height:52px;border:1px solid #dce6e0;border-radius:10px;background:#fff;color:#1d2927;padding:0 10px;font:inherit;font-size:14px}
+.phone-help{margin:4px 0 14px;color:#778780;font-size:13px;line-height:1.5;text-align:left}
+.phone-resend{display:block;margin:10px auto}
+@media(max-width:420px){.phone-entry{grid-template-columns:1fr}.phone-entry select,.phone-entry input{height:48px}}
