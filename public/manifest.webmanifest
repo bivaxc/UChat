@@ -1,0 +1,13 @@
+{
+  "name": "UChat",
+  "short_name": "UChat",
+  "description": "Simple conversations. Wherever you are.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#ffd600",
+  "icons": [
+    { "src": "./uchat-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
