@@ -100,3 +100,72 @@
 .phone-help{margin:4px 0 14px;color:#778780;font-size:13px;line-height:1.5;text-align:left}
 .phone-resend{display:block;margin:10px auto}
 @media(max-width:420px){.phone-entry{grid-template-columns:1fr}.phone-entry select,.phone-entry input{height:48px}}
+
+
+/* UChat dark glass interface refresh: charcoal surfaces and iOS-blue accents */
+:root{color-scheme:dark;background:#0b0d12;color:#f5f6fa;--uc-accent:#4f9cff;--uc-accent-soft:#152842;--uc-line:#252832;--uc-muted:#969ba8}
+:root body{background:#0b0d12;color:#f5f6fa}
+.app{background:#0b0d12!important;color:#f5f6fa}
+.topbar{background:#0b0d12!important;color:#f5f6fa;border-bottom:1px solid #191c24}
+.brandmini .logo{background:#152842!important;border-color:#4f9cff!important;color:#80baff}
+.workspace{background:#0b0d12!important}
+.sidebar,.chatpane{background:#0b0d12!important;color:#f5f6fa}
+.wa-chat-title h1{color:#f5f6fa}
+.wa-newchat{background:#4f9cff!important;color:#071321!important}
+.searchbox{background:#20232b!important;color:#aab0bd!important}
+.searchbox input{color:#f5f6fa!important}
+.wa-filters button{background:#12151c;border-color:#2c303a;color:#b8bdc8}
+.wa-filters button.selected{background:#172b45;border-color:#315d8e;color:#a9d1ff}
+.wa-filters button.filter-add{color:#f5f6fa}
+.listheading{color:#969ba8!important}
+.roomrow{border-bottom-color:#252832!important;color:#f5f6fa!important}
+.roomrow:hover,.roomrow.chosen{background:#171a22!important}
+.avatar{background:#252a34!important;border-color:#343a47!important;color:#e4e8f0!important}
+.roomtext strong{color:#f5f6fa!important}
+.roomtext small{color:#9ca2ae!important}
+.chatpane{border-left-color:#252832!important}
+.chathead{background:#11141b!important;border-bottom-color:#252832!important}
+.chatheadtext small{color:#a1a7b3!important}
+.callbuttons button{background:#172b45!important;color:#8fc2ff!important}
+.messages{background:#0b0d12!important;background-image:radial-gradient(#20232b .7px,transparent .7px)!important}
+.bubble{background:#20232b!important;border-color:#30343e!important;color:#f5f6fa}
+.bubble.mine,.mine .bubble{background:#173b62!important;border-color:#245889!important;color:#fff!important}
+.sender{color:#8fc2ff!important}
+.meta{color:#a0a6b2!important}
+.meta .read{color:#72b3ff!important}
+.composer{background:#11141b!important;border-top-color:#252832!important}
+.composer>input{background:#242731!important;color:#f5f6fa!important}
+.attach{color:#a8afbc!important}
+.sendbtn,.primary{background:#4f9cff!important;color:#071321!important}
+.emptychat{background:#11141b!important;color:#f5f6fa!important}
+.emptychat p,.emptychat small,.welcome p,.welcome small{color:#a1a7b3!important}
+.welcomeicon{background:#172b45!important;color:#8fc2ff!important}
+.encrypted{background:#151922!important;color:#a1a7b3!important}
+.floating-nav.wa-dock{background:rgba(64,69,80,.62)!important;border-color:rgba(235,239,248,.18)!important;box-shadow:0 12px 34px rgba(0,0,0,.46),inset 0 1px 0 rgba(255,255,255,.17)!important}
+.floating-nav.wa-dock button{color:#f0f2f8!important}
+.floating-nav.wa-dock button.active{background:rgba(10,13,20,.9)!important;color:#65aaff!important}
+.floating-nav.wa-dock button.active svg{color:#65aaff!important}
+.floating-nav.wa-dock .nav-settings{border-color:rgba(235,239,248,.12)!important}
+.modalback{background:rgba(0,0,0,.64)!important}
+.modal,.callwindow{background:#171a22!important;color:#f5f6fa!important;border-color:#343946!important}
+.modal input,.modal textarea,.phone-entry select,.phone-entry input{background:#11141b!important;color:#f5f6fa!important;border-color:#343946!important}
+.settinglabel,.hint{color:#c0c5d0!important}
+.contactpick,.themebutton{background:#171a22!important;color:#a9d1ff!important;border-color:#343946!important}
+.auth{background:radial-gradient(ellipse at top,#17263b,#0b0d12 66%)!important}
+.brand h1{color:#8fc2ff!important}
+.authform{background:#151820!important;color:#f5f6fa!important;border-color:#2c303a!important}
+.authform input{background:#0f1218!important;color:#f5f6fa!important;border-color:#343946!important}
+.authform p,.phone-help{color:#a1a7b3!important}
+.auth-methods{background:#0f1218!important}
+.auth-methods button{color:#a1a7b3!important}
+.auth-methods button.chosen{background:#273143!important;color:#a9d1ff!important}
+.oauthbtn{background:#171a22!important;color:#f5f6fa!important;border-color:#343946!important}
+.link{color:#8fc2ff!important}
+.toast{background:#202633!important;color:#f5f6fa!important;border:1px solid #343946}
+.call-list-placeholder{color:#e7eaf1!important}
+.call-list-placeholder p{color:#a1a7b3!important}
+@media(max-width:720px){
+ .topbar{background:#0b0d12!important}
+ .sidebar,.chatpane{background:#0b0d12!important}
+ .floating-nav.wa-dock button.active{background:rgba(10,13,20,.92)!important}
+}
