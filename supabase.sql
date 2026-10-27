@@ -124,3 +124,20 @@ using (left(realtime.topic(),10)='call-room-' and public.is_room_member(substrin
 drop policy if exists "room members can send call signals" on realtime.messages;
 create policy "room members can send call signals" on realtime.messages for insert to authenticated
 with check (left(realtime.topic(),10)='call-room-' and public.is_room_member(substring(realtime.topic() from 11)::uuid));
+
+-- UChat feature migration: run this after the original schema has been created.
+alter table public.profiles add column if not exists username text;
+create unique index if not exists profiles_username_unique_idx on public.profiles(lower(username)) where username is not null;
+create table if not exists public.statuses (
+ id uuid primary key default gen_random_uuid(),
+ user_id uuid not null references auth.users(id) on delete cascade,
+ body text not null check (char_length(body) between 1 and 280),
+ created_at timestamptz not null default now()
+);
+alter table public.statuses enable row level security;
+drop policy if exists "signed-in users can read statuses" on public.statuses;
+create policy "signed-in users can read statuses" on public.statuses for select to authenticated using (true);
+drop policy if exists "users can post own statuses" on public.statuses;
+create policy "users can post own statuses" on public.statuses for insert to authenticated with check (user_id=(select auth.uid()));
+drop policy if exists "users can delete own statuses" on public.statuses;
+create policy "users can delete own statuses" on public.statuses for delete to authenticated using (user_id=(select auth.uid()));
