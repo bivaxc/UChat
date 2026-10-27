@@ -1,317 +1,1711 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MessageCircle, Users, LogOut, Send, ImagePlus, Plus, Phone, Video, Search, CheckCheck, X, PhoneOff, Settings as SettingsIcon, CirclePlus, UsersRound, Activity, UserRoundPlus, Sun, Moon } from 'lucide-react';
+import {
+  MessageCircle, Users, LogOut, Send, ImagePlus, Plus, Phone, Video,
+  Search, CheckCheck, X, PhoneOff, Settings as SettingsIcon, CirclePlus,
+  UsersRound, Activity, UserRoundPlus, Sun, Moon
+} from 'lucide-react';
 import { supabase } from './supabase';
 import './style.css';
 
-function App(){
- const [session,setSession]=useState(null),[profile,setProfile]=useState(null),[authMode,setAuthMode]=useState('login'),[authMethod,setAuthMethod]=useState('email'),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[phone,setPhone]=useState(''),[countryCode,setCountryCode]=useState('+256'),[phoneOtp,setPhoneOtp]=useState(''),[phoneStep,setPhoneStep]=useState(false),[displayName,setDisplayName]=useState(''),[notice,setNotice]=useState('');
- const [people,setPeople]=useState([]),[rooms,setRooms]=useState([]),[active,setActive]=useState(null),[messages,setMessages]=useState([]),[draft,setDraft]=useState(''),[search,setSearch]=useState(''),[tab,setTab]=useState('chats'),[showNew,setShowNew]=useState(false),[groupName,setGroupName]=useState(''),[selected,setSelected]=useState([]),[call,setCall]=useState(null),[showSettings,setShowSettings]=useState(false),[newDisplayName,setNewDisplayName]=useState(''),[username,setUsername]=useState(''),[newUsername,setNewUsername]=useState(''),[theme,setTheme]=useState(()=>localStorage.getItem('uchat-theme')||'light'),[statuses,setStatuses]=useState([]),[statusText,setStatusText]=useState('');
- const bottomRef=useRef(null),pcRef=useRef(null),localRef=useRef(null),remoteRef=useRef(null),channelRef=useRef(null),seenRef=useRef(new Set());
+function App() {
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [authMode, setAuthMode] = useState('login');
+  const [authMethod, setAuthMethod] = useState('email');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+256');
+  const [phoneOtp, setPhoneOtp] = useState('');
+  const [phoneStep, setPhoneStep] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [notice, setNotice] = useState('');
 
- const tell=(s)=>{setNotice(s);setTimeout(()=>setNotice(''),4500)};
+  const [people, setPeople] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [active, setActive] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [draft, setDraft] = useState('');
+  const [search, setSearch] = useState('');
+  const [tab, setTab] = useState('chats');
+  const [showNew, setShowNew] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [selected, setSelected] = useState([]);
+  const [call, setCall] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [username, setUsername] = useState('');
+  const [newUsername, setNewUsername] = useState('');
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem('uchat-theme') || 'light'
+  );
+  const [statuses, setStatuses] = useState([]);
+  const [statusText, setStatusText] = useState('');
 
- useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem('uchat-theme',theme)},[theme]);
+  const bottomRef = useRef(null);
+  const pcRef = useRef(null);
+  const localRef = useRef(null);
+  const remoteRef = useRef(null);
+  const channelRef = useRef(null);
+  const seenRef = useRef(new Set());
 
- useEffect(()=>{
-  if(!supabase)return;
-  supabase.auth.getSession().then(({data})=>setSession(data.session));
-  const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s));
-  return()=>subscription.unsubscribe();
- },[]);
+  const tell = (s) => {
+    setNotice(s);
+    setTimeout(() => setNotice(''), 4500);
+  };
 
- useEffect(()=>{
-  if(!session)return;
-  let live=true;
-  (async()=>{
-   let {data:p}=await supabase.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
-   if(!p){
-    p={id:session.user.id,display_name:session.user.user_metadata?.display_name||session.user.email?.split('@')[0]||'User'};
-    await supabase.from('profiles').upsert(p);
-   }
-   if(live){setProfile(p);setNewDisplayName(p.display_name||'');setNewUsername(p.username||'')}
-   await loadPeople();
-   await loadRooms();
-   await loadStatuses();
-  })();
-  return()=>{live=false};
- },[session]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('uchat-theme', theme);
+  }, [theme]);
 
- async function loadPeople(){
-  const {data,error}=await supabase.from('profiles').select('id,display_name,username,avatar_url,updated_at').order('display_name');
-  if(error)tell(error.message);else setPeople(data||[]);
- }
+  useEffect(() => {
+    if (!supabase) return;
 
- async function loadStatuses(){
-  const {data,error}=await supabase.from('statuses').select('id,user_id,body,created_at').order('created_at',{ascending:false}).limit(100);
-  if(error){if(!error.message.includes('statuses'))tell(error.message)}else setStatuses(data||[]);
- }
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
 
- async function postStatus(e){
-  e.preventDefault();
-  const body=statusText.trim();
-  if(!body)return;
-  if(body.length>280)return tell('Status must be 280 characters or fewer.');
-  const {error}=await supabase.from('statuses').insert({user_id:session.user.id,body});
-  if(error){tell('Could not post status: '+error.message);return}
-  setStatusText('');
-  await loadStatuses();
-  tell('Status posted.');
- }
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
 
- async function pickContacts(){
-  try{
-   if(!('contacts' in navigator)||!navigator.contacts?.select){
-    tell('Contact picker is not supported in this browser. Search by username or display name instead.');
-    return;
-   }
-   const picked=await navigator.contacts.select(['name','email'],{multiple:true});
-   if(!picked.length)return;
-   const names=picked.flatMap(x=>x.name||[]).map(x=>x.toLowerCase());
-   const matches=people.filter(p=>p.id!==session.user.id&&names.includes((p.display_name||'').toLowerCase()));
-   if(matches.length){
-    setTab('people');
-    tell('Found '+matches.length+' matching UChat contact(s). Search results are available in People.');
-   }else{
-    tell('No matching UChat accounts found for selected contact names. Try searching their UChat username.');
-   }
-  }catch(e){
-   if(e.name!=='AbortError')tell('Could not access contacts. You can search by username instead.');
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session) return;
+
+    let live = true;
+
+    (async () => {
+      let { data: p } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (!p) {
+        p = {
+          id: session.user.id,
+          display_name:
+            session.user.user_metadata?.display_name ||
+            session.user.email?.split('@')[0] ||
+            'User'
+        };
+
+        await supabase.from('profiles').upsert(p);
+      }
+
+      if (live) {
+        setProfile(p);
+        setNewDisplayName(p.display_name || '');
+        setNewUsername(p.username || '');
+      }
+
+      await loadPeople();
+      await loadRooms();
+      await loadStatuses();
+    })();
+
+    return () => {
+      live = false;
+    };
+  }, [session]);
+
+  async function loadPeople() {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id,display_name,username,avatar_url,updated_at')
+      .order('display_name');
+
+    if (error) tell(error.message);
+    else setPeople(data || []);
   }
- }
 
- async function loadRooms(){
-  const {data,error}=await supabase.from('room_members').select('room_id,rooms(id,name,is_group,created_by,created_at)').order('created_at',{ascending:false});
-  if(error){tell(error.message);return}
-  const base=(data||[]).map(x=>x.rooms).filter(Boolean);
-  const ids=[...new Set(base.map(r=>r.id))];
-  if(!ids.length){setRooms([]);return}
-  const {data:members}=await supabase.from('room_members').select('room_id,user_id').in('room_id',ids);
-  const mapped=base.map(r=>{
-   if(r.is_group)return r;
-   const other=(members||[]).find(m=>m.room_id===r.id&&m.user_id!==session?.user?.id);
-   const person=people.find(p=>p.id===other?.user_id);
-   return {...r,display_title:person?.display_name||'Direct chat'};
-  });
-  setRooms(mapped);
- }
+  async function loadStatuses() {
+    const { data, error } = await supabase
+      .from('statuses')
+      .select('id,user_id,body,created_at')
+      .order('created_at', { ascending: false })
+      .limit(100);
 
- useEffect(()=>{
-  if(!active||!session)return;
-  let alive=true;
-  seenRef.current=new Set();
-  (async()=>{
-   const {data,error}=await supabase.from('messages').select('id,room_id,sender_id,body,image_url,created_at,read_by').eq('room_id',active.id).order('created_at');
-   if(error)tell(error.message);
-   if(alive){setMessages(data||[]);markRead(data||[])}
-  })();
-  const ch=supabase.channel('room-'+active.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:'room_id=eq.'+active.id},payload=>{
-   setMessages(old=>old.some(m=>m.id===payload.new.id)?old:[...old,payload.new]);
-   if(payload.new.sender_id!==session.user.id)markRead([payload.new]);
-  }).subscribe();
-  return()=>{alive=false;supabase.removeChannel(ch)};
- },[active?.id,session?.user?.id]);
-
- useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:'smooth'})},[messages]);
-
- async function markRead(rows){
-  for(const m of rows){
-   if(m.sender_id===session?.user?.id||seenRef.current.has(m.id))continue;
-   seenRef.current.add(m.id);
-   const ids=Array.isArray(m.read_by)?m.read_by:[];
-   if(!ids.includes(session.user.id))await supabase.from('messages').update({read_by:[...ids,session.user.id]}).eq('id',m.id);
-  }
- }
-
- async function authSubmit(e){
-  e.preventDefault();
-  setNotice('');
-  if(!supabase)return;
-  let result;
-  if(authMode==='signup'){
-   result=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin+'/'}})
-  }else{
-   result=await supabase.auth.signInWithPassword({email,password});
-  }
-  if(result.error)tell(result.error.message);
-  else if(authMode==='signup'&&!result.data.session)tell('Check your email to confirm your account, then log in.');
-  else tell(authMode==='signup'?'Account created.':'Welcome back.');
- }
-
- async function authProvider(provider){
-  setNotice('');
-  if(!supabase)return;
-  const {error}=await supabase.auth.signInWithOAuth({provider,options:{redirectTo:window.location.origin+'/'}}); 
-  if(error)tell(error.message);
- }
-
- async function sendPhoneCode(e){
-  e?.preventDefault();
-  if(!supabase)return;
-  const national=phone.trim().replace(/[\s()-]/g,'').replace(/^0/,'');
-  if(!/^\d{6,14}$/.test(national))return tell('Enter a valid phone number without the country code.');
-  const fullPhone=countryCode+national;
-  const {error}=await supabase.auth.signInWithOtp({phone:fullPhone,options:{shouldCreateUser:authMode==='signup'}});
-  if(error){tell(error.message);return}
-  setPhone(fullPhone);
-  setPhoneStep(true);
-  tell('Verification code sent to '+fullPhone+'.');
- }
-
- async function verifyPhoneCode(e){
-  e?.preventDefault();
-  if(!supabase)return;
-  if(!/^\d{4,8}$/.test(phoneOtp.trim()))return tell('Enter the SMS verification code.');
-  const {error}=await supabase.auth.verifyOtp({phone,token:phoneOtp.trim(),type:'sms'});
-  if(error){tell(error.message);return}
-  setPhoneStep(false);
-  setPhoneOtp('');
-  tell('Phone number verified. Welcome to UChat.');
- }
-
- async function saveDisplayName(e){
-  e.preventDefault();
-  const value=newDisplayName.trim();
-  const handle=newUsername.trim().toLowerCase().replace(/^@/,'');
-  if(!value)return tell('Enter a display name.');
-  if(value.length>40)return tell('Display name must be 40 characters or fewer.');
-  if(!/^[a-z0-9_]{3,24}$/.test(handle))return tell('Username must be 3–24 characters: letters, numbers, underscores.');
-  const {error}=await supabase.from('profiles').upsert({id:session.user.id,display_name:value,username:handle,updated_at:new Date().toISOString()});
-  if(error){tell('Could not save display name: '+error.message);return}
-  setProfile(old=>({...old,display_name:value,username:handle}));
-  await loadPeople();
-  setShowSettings(false);
-  tell('Display name updated.');
- }
-
- async function signOut(){
-  await endCall();
-  await supabase.auth.signOut();
-  setProfile(null);
-  setActive(null);
-  setRooms([]);
-  setMessages([]);
- }
-
- async function openDirect(person){
-  if(person.id===session.user.id){tell('That is your own account.');return}
-  const {data,error}=await supabase.rpc('get_or_create_direct_room',{other_user:person.id});
-  if(error){tell('Could not open chat: '+error.message);return}
-  await loadRooms();
-  const {data:r}=await supabase.from('rooms').select('*').eq('id',data).single();
-  setActive({...r,display_title:person.display_name||'Direct chat'});
-  setTab('chats');
-  setShowNew(false);
- }
-
- async function createGroup(e){
-  e.preventDefault();
-  if(!groupName.trim()||!selected.length)return;
-  const {data,error}=await supabase.from('rooms').insert({name:groupName.trim(),is_group:true,created_by:session.user.id}).select().single();
-  if(error){tell(error.message);return}
-  const members=[session.user.id,...selected];
-  const {error:me}=await supabase.from('room_members').insert(members.map(user_id=>({room_id:data.id,user_id})));
-  if(me){tell(me.message);return}
-  await loadRooms();
-  setActive(data);
-  setShowNew(false);
-  setGroupName('');
-  setSelected([]);
-  tell('Group created.');
- }
-
- async function sendMessage(e){
-  e?.preventDefault();
-  if(!active||(!draft.trim()))return;
-  const body=draft.trim();
-  setDraft('');
-  const {error}=await supabase.from('messages').insert({room_id:active.id,sender_id:session.user.id,body,read_by:[session.user.id]});
-  if(error){setDraft(body);tell(error.message)}
- }
-
- async function uploadImage(e){
-  const file=e.target.files?.[0];
-  e.target.value='';
-  if(!file||!active)return;
-  if(!file.type.startsWith('image/'))return tell('Choose an image file.');
-  if(file.size>5*1024*1024)return tell('Image must be 5 MB or smaller.');
-  const path=`${session.user.id}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-  const {error:up}=await supabase.storage.from('chat-images').upload(path,file,{upsert:false});
-  if(up)return tell('Image upload failed: '+up.message);
-  const {data}=supabase.storage.from('chat-images').getPublicUrl(path);
-  const {error}=await supabase.from('messages').insert({room_id:active.id,sender_id:session.user.id,image_url:data.publicUrl,body:'',read_by:[session.user.id]});
-  if(error)tell(error.message);
- }
-
- async function startCall(kind){
-  if(!active||active.is_group)return tell('Calls are available in one-to-one chats only in this starter.');
-  try{
-   const stream=await navigator.mediaDevices.getUserMedia({audio:true,video:kind==='video'});
-   localRef.current.srcObject=stream;
-   setCall({kind,status:'Calling…'});
-   const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
-   pcRef.current=pc;
-   stream.getTracks().forEach(t=>pc.addTrack(t,stream));
-   pc.ontrack=e=>{if(remoteRef.current)remoteRef.current.srcObject=e.streams[0]};
-   const targetChannel='call-room-'+active.id;
-   const ch=supabase.channel(targetChannel,{config:{private:true,broadcast:{self:false}}});
-   channelRef.current=ch;
-   ch.on('broadcast',{event:'signal'},async({payload})=>{
-    if(payload.from===session.user.id)return;
-    if(payload.type==='offer'){
-     await pc.setRemoteDescription(payload.sdp);
-     const answer=await pc.createAnswer();
-     await pc.setLocalDescription(answer);
-     await ch.send({type:'broadcast',event:'signal',payload:{type:'answer',sdp:pc.localDescription,from:session.user.id}});
-    }else if(payload.type==='answer'&&pc.signalingState==='have-local-offer'){
-     await pc.setRemoteDescription(payload.sdp);
-    }else if(payload.type==='ice'&&payload.candidate){
-     try{await pc.addIceCandidate(payload.candidate)}catch{}
-    }else if(payload.type==='hangup'){
-     endCall(false);
+    if (error) {
+      if (!error.message.includes('statuses')) tell(error.message);
+    } else {
+      setStatuses(data || []);
     }
-   }).subscribe(async status=>{
-    if(status==='SUBSCRIBED'){
-     const offer=await pc.createOffer();
-     await pc.setLocalDescription(offer);
-     await ch.send({type:'broadcast',event:'signal',payload:{type:'offer',sdp:pc.localDescription,from:session.user.id}});
-    }
-   });
-   pc.onicecandidate=e=>{
-    if(e.candidate)ch.send({type:'broadcast',event:'signal',payload:{type:'ice',candidate:e.candidate,from:session.user.id}});
-   };
-   pc.onconnectionstatechange=()=>{
-    if(pc.connectionState==='connected')setCall(c=>c?{...c,status:'Connected'}:c);
-    if(['failed','disconnected'].includes(pc.connectionState))setCall(c=>c?{...c,status:'Connection issue'}:c);
-   };
-  }catch(e){
-   tell('Could not start call. Check microphone/camera permissions. '+e.message);
-   await endCall();
   }
- }
 
- async function endCall(sendSignal=true){
-  if(sendSignal&&channelRef.current)await channelRef.current.send({type:'broadcast',event:'signal',payload:{type:'hangup',from:session?.user?.id}}).catch(()=>{});
-  channelRef.current&&supabase?.removeChannel(channelRef.current);
-  channelRef.current=null;
-  pcRef.current?.close();
-  pcRef.current=null;
-  localRef.current?.srcObject?.getTracks().forEach(t=>t.stop());
-  remoteRef.current?.srcObject?.getTracks().forEach(t=>t.stop());
-  if(localRef.current)localRef.current.srcObject=null;
-  if(remoteRef.current)remoteRef.current.srcObject=null;
-  setCall(null);
- }
+  async function postStatus(e) {
+    e.preventDefault();
 
- if(!supabase)return <div className="setup"><h1>UChat</h1><p>One setup step before UChat can run.</p><p>Create a Supabase project, then copy <code>.env.example</code> to <code>.env</code> and enter your project URL and publishable key.</p></div>;
+    const body = statusText.trim();
+    if (!body) return;
 
- if(!session)return <main className="auth"><div className="brand"><span className="logo"><img src="./uchat-logo.svg" alt="" /></span><h1>UChat</h1><p>Simple conversations. Wherever you are.</p></div><form className="authform" onSubmit={authMethod==='phone'?(phoneStep?verifyPhoneCode:sendPhoneCode):authSubmit}><h2>{phoneStep?'Verify your phone':authMode==='login'?'Welcome back':'Create your account'}</h2><div className="auth-methods"><button type="button" className={authMethod==='email'?'chosen':''} onClick={()=>{setAuthMethod('email');setPhoneStep(false)}}>Email</button><button type="button" className={authMethod==='phone'?'chosen':''} onClick={()=>{setAuthMethod('phone');setPhoneStep(false)}}>Phone number</button></div>{authMethod==='email'?<><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email address" required/><input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password (at least 8 characters)" minLength={8} required/><button className="primary">{authMode==='login'?'Log in':'Create account'}</button></>:phoneStep?<><p className="phone-help">Enter the SMS code sent to <strong>{phone}</strong>.</p><input inputMode="numeric" autoComplete="one-time-code" value={phoneOtp} onChange={e=>setPhoneOtp(e.target.value)} placeholder="SMS verification code" required/><button className="primary">Verify phone number</button><button type="button" className="link phone-resend" onClick={sendPhoneCode}>Send code again</button></>:<><div className="phone-entry"><select aria-label="Country calling code" value={countryCode} onChange={e=>setCountryCode(e.target.value)}><option value="+256">🇺🇬 Uganda (+256)</option><option value="+254">🇰🇪 Kenya (+254)</option><option value="+255">🇹🇿 Tanzania (+255)</option><option value="+250">🇷🇼 Rwanda (+250)</option><option value="+211">🇸🇸 South Sudan (+211)</option><option value="+234">🇳🇬 Nigeria (+234)</option><option value="+233">🇬🇭 Ghana (+233)</option><option value="+251">🇪🇹 Ethiopia (+251)</option><option value="+20">🇪🇬 Egypt (+20)</option><option value="+212">🇲🇦 Morocco (+212)</option><option value="+27">🇿🇦 South Africa (+27)</option><option value="+1">🇺🇸 USA/Canada (+1)</option><option value="+44">🇬🇧 United Kingdom (+44)</option><option value="+353">🇮🇪 Ireland (+353)</option><option value="+33">🇫🇷 France (+33)</option><option value="+49">🇩🇪 Germany (+49)</option><option value="+39">🇮🇹 Italy (+39)</option><option value="+34">🇪🇸 Spain (+34)</option><option value="+351">🇵🇹 Portugal (+351)</option><option value="+91">🇮🇳 India (+91)</option><option value="+86">🇨🇳 China (+86)</option><option value="+81">🇯🇵 Japan (+81)</option><option value="+82">🇰🇷 South Korea (+82)</option><option value="+61">🇦🇺 Australia (+61)</option><option value="+64">🇳🇿 New Zealand (+64)</option><option value="+971">🇦🇪 UAE (+971)</option><option value="+966">🇸🇦 Saudi Arabia (+966)</option><option value="+974">🇶🇦 Qatar (+974)</option><option value="+90">🇹🇷 Türkiye (+90)</option><option value="+7">🇰🇿 Kazakhstan/Russia (+7)</option><option value="+55">🇧🇷 Brazil (+55)</option><option value="+52">🇲🇽 Mexico (+52)</option></select><input type="tel" inputMode="tel" autoComplete="tel-national" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="Phone number" required/></div><p className="phone-help">We’ll text you a verification code. Enter your number without the country code.</p><button className="primary">Send verification code</button></>}{!phoneStep&&<><div className="authdivider"><span>or continue with</span></div><button type="button" className="oauthbtn" onClick={()=>authProvider('google')}><span className="googlemark">G</span> Continue with Google</button><button type="button" className="oauthbtn" onClick={()=>authProvider('apple')}><span className="applemark">●</span> Continue with Apple</button></>}<p>{authMode==='login'?"New to UChat?":"Already registered?"} <button type="button" className="link" onClick={()=>{setAuthMode(authMode==='login'?'signup':'login');setPhoneStep(false);setPhoneOtp('')}}>{authMode==='login'?'Create an account':'Log in'}</button></p></form>{notice&&<div className="toast">{notice}</div>}</main>;
+    if (body.length > 280) {
+      return tell('Status must be 280 characters or fewer.');
+    }
 
- const myId=session.user.id;
- const shownPeople=people.filter(p=>p.id!==myId&&((p.display_name||'').toLowerCase().includes(search.toLowerCase())||(p.username||'').toLowerCase().includes(search.toLowerCase().replace(/^@/,''))));
- const shownRooms=rooms.filter(r=>(r.name||'').toLowerCase().includes(search.toLowerCase())||(!r.is_group&&people.some(p=>r.name?.toLowerCase().includes(p.display_name?.toLowerCase())&&p.display_name?.toLowerCase().includes(search.toLowerCase()))));
+    const { error } = await supabase
+      .from('statuses')
+      .insert({ user_id: session.user.id, body });
 
- return <div className="app"><header className="topbar"><div className="brandmini"><span className="logo"><img src="./uchat-logo.svg" alt="" /></span><strong>UChat</strong></div><div className="topright"><span className="userlabel">{profile?.display_name||session.user.email}</span><button className="iconbtn" title="Settings" onClick={()=>{setNewDisplayName(profile?.display_name||'');setNewUsername(profile?.username||'');setShowSettings(true)}}><SettingsIcon size={18}/></button><button className="iconbtn" title="Sign out" onClick={signOut}><LogOut size={18}/></button></div></header><div className="workspace"><aside className={`sidebar ${active?'hide-mobile':''}`}>{tab==='chats'&&<div className="wa-chat-title"><h1>Chats</h1><button className="wa-newchat" onClick={()=>{setTab('people');setSearch('')}} aria-label="New chat"><Plus size={25}/></button></div>}<div className="searchbox"><Search size={19}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={tab==='chats'?'Ask UChat or Search':tab==='groups'?'Search groups':tab==='status'?'Search updates':'Search username or name'}/></div>{tab==='chats'&&<div className="wa-filters"><button className="selected">All</button><button onClick={()=>tell('Unread filtering is not implemented yet.')}>Unread</button><button onClick={()=>tell('Favorites are not implemented yet.')}>Favorites</button><button onClick={()=>setTab('groups')}>Groups</button><button className="filter-add" onClick={()=>{setTab('people');setSearch('')}} aria-label="Find a person"><Plus size={20}/></button></div>}{tab==='chats'?<><div className="listheading">YOUR CONVERSATIONS <button className="iconbtn" onClick={()=>setShowNew(true)} title="Create group"><Plus size={18}/></button></div><div className="roomlist">{shownRooms.map(r=><button key={r.id} className={`roomrow ${active?.id===r.id?'chosen':''}`} onClick={()=>setActive(r)}><span className="avatar">{r.is_group?<Users size={18}/>:((r.name||'C')[0].toUpperCase())}</span><span className="roomtext"><strong>{r.is_group?(r.name||'Group'): (r.display_title||'Direct chat')}</strong><small>{r.is_group?'Group chat':'Private chat'}</small></span></button>)}{!shownRooms.length&&<p className="empty">No chats yet. Open People to start one.</p>}</div></>:tab==='groups'?<><div className="listheading">YOUR GROUPS <button className="iconbtn" onClick={()=>setShowNew(true)} title="Create group"><Plus size={18}/></button></div><div className="roomlist">{shownRooms.filter(r=>r.is_group).map(r=><button key={r.id} className={`roomrow ${active?.id===r.id?'chosen':''}`} onClick={()=>setActive(r)}><span className="avatar"><UsersRound size={18}/></span><span className="roomtext"><strong>{r.name||'Group'}</strong><small>Group conversation</small></span></button>)}{!shownRooms.some(r=>r.is_group)&&<p className="empty">No groups yet. Use + to create one.</p>}</div></>:tab==='status'?<><div className="listheading">RECENT STATUS</div><form className="statusform" onSubmit={postStatus}><textarea value={statusText} onChange={e=>setStatusText(e.target.value)} placeholder="Share a status update..." maxLength={280}/><button className="primary" disabled={!statusText.trim()}>Post status</button></form><div className="roomlist">{statuses.map(st=><div className="statusrow" key={st.id}><span className="avatar"><Activity size={16}/></span><div><strong>{people.find(p=>p.id===st.user_id)?.display_name||'UChat user'}</strong><p>{st.body}</p><small>{new Date(st.created_at).toLocaleString()}</small></div></div>)}{!statuses.length&&<p className="empty">No status updates yet.</p>}</div></>:tab==='calls'?<><div className="listheading">CALLS</div><div className="call-list-placeholder"><Phone size={30}/><strong>Your calls</strong><p>Voice and video calls with UChat contacts will appear here.</p><button className="primary" onClick={()=>setTab('people')}>Start a call</button></div></>:<><div className="listheading">FIND PEOPLE <button className="iconbtn" onClick={pickContacts} title="Choose from device contacts"><UserRoundPlus size={18}/></button></div><button className="contactpick" onClick={pickContacts}><UserRoundPlus size={16}/> Choose from device contacts</button><div className="roomlist">{shownPeople.map(p=><button key={p.id} className="roomrow" onClick={()=>openDirect(p)}><span className="avatar">{(p.display_name||'U')[0].toUpperCase()}</span><span className="roomtext"><strong>{p.display_name||'UChat user'}</strong><small>@{p.username||'username-not-set'} · Start a conversation</small></span><CirclePlus size={17}/></button>)}{!shownPeople.length&&<p className="empty">No matching users. Search their username or display name.</p>}</div></>}<div className="sidebarfoot">UChat · Stay connected</div></aside><section className={`chatpane ${!active?'no-active':''} ${active?'show-mobile':''}`}>{active?<><div className="chathead"><button className="backmobile" onClick={()=>setActive(null)}>‹</button><span className="avatar">{active.is_group?<Users size={18}/>:((active.name||'C')[0].toUpperCase())}</span><div className="chatheadtext"><strong>{active.is_group?(active.name||'Group'):(active.display_title||'Direct chat')}</strong><small>{active.is_group?'Group conversation':'Messages are live'}</small></div><div className="callbuttons"><button title="Voice call" onClick={()=>startCall('audio')}><Phone size={18}/></button><button title="Video call" onClick={()=>startCall('video')}><Video size={19}/></button></div></div><div className="messages">{messages.map(m=><div key={m.id} className={`bubblewrap ${m.sender_id===myId?'mine':'theirs'}`}><div className="bubble">{m.sender_id!==myId&&active.is_group&&<small className="sender">{people.find(p=>p.id===m.sender_id)?.display_name||'Member'}</small>}{m.image_url&&<a href={m.image_url} target="_blank" rel="noreferrer"><img className="chatimage" src={m.image_url} alt="Shared image"/></a>}{m.body&&<div>{m.body}</div>}<div className="meta">{new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}{m.sender_id===myId&&<CheckCheck size={14} className={(m.read_by||[]).length>1?'read':''}/>}</div></div></div>)}<div ref={bottomRef}/>{!messages.length&&<div className="emptychat">Say hello 👋<small>Your messages will appear here.</small></div>}</div><form className="composer" onSubmit={sendMessage}><label className="attach" title="Share image"><ImagePlus size={21}/><input type="file" accept="image/*" onChange={uploadImage}/></label><input value={draft} onChange={e=>setDraft(e.target.value)} placeholder="Type a message" maxLength={4000}/><button className="sendbtn" disabled={!draft.trim()} aria-label="Send"><Send size={19}/></button></form></>:<div className="welcome"><div className="welcomeicon"><MessageCircle size={54}/></div><h2>UChat Web</h2><p>Send messages, share moments, and stay connected.</p><small>Select a conversation or find people to start chatting.</small><div className="encrypted">Private conversations · Real-time updates</div></div>}</section></div><div className="floating-nav-wrap"><nav className="floating-nav wa-dock" aria-label="Main navigation"><button className={tab==='status'?'active':''} onClick={()=>setTab('status')} aria-label="Updates"><Activity/><span>Updates</span></button><button className={tab==='calls'?'active':''} onClick={()=>setTab('calls')} aria-label="Calls"><Phone/><span>Calls</span></button><button className={tab==='groups'?'active':''} onClick={()=>setTab('groups')} aria-label="Communities"><UsersRound/><span>Communities</span></button><button className={tab==='chats'?'active':''} onClick={()=>setTab('chats')} aria-label="Chats"><MessageCircle/><span>Chats</span></button><button className="nav-settings" onClick={()=>{setNewDisplayName(profile?.display_name||'');setNewUsername(profile?.username||'');setShowSettings(true)}} aria-label="You"><span className="you-avatar">{(profile?.display_name||'U').slice(0,1).toUpperCase()}</span><span>You</span></button></nav></div>{showSettings&&<div className="modalback" onClick={()=>setShowSettings(false)}><form className="modal" onSubmit={saveDisplayName} onClick={e=>e.stopPropagation()}><div className="modalhead"><h2>Settings</h2><button type="button" className="iconbtn" onClick={()=>setShowSettings(false)}><X/></button></div><label className="settinglabel">Display name</label><input value={newDisplayName} onChange={e=>setNewDisplayName(e.target.value)} placeholder="Your display name" maxLength={40} required/><p className="hint">You can change how your name appears to other UChat users at any time.</p><label className="settinglabel">Username</label><input value={newUsername} onChange={e=>setNewUsername(e.target.value)} placeholder="username" maxLength={24} required/><p className="hint">Unique username, 3–24 characters. Letters, numbers and underscores only.</p><label className="settinglabel">Appearance</label><button type="button" className="themebutton" onClick={()=>setTheme(theme==='light'?'dark':'light')}>{theme==='light'?<Moon size={17}/>:<Sun size={17}/>} Switch to {theme==='light'?'dark':'light'} mode</button><button className="primary">Save changes</button></form></div>}{showNew&&<div className="modalback" onClick={()=>setShowNew(false)}><form className="modal" onSubmit={createGroup} onClick={e=>e.stopPropagation()}><div className="modalhead"><h2>Create a group</h2><button type="button" className="iconbtn" onClick={()=>setShowNew(false)}><X/></button></div><input placeholder="Group name" value={groupName} onChange={e=>setGroupName(e.target.value)} maxLength={60} required/><p className="hint">Choose members</p><div className="memberchoices">{people.filter(p=>p.id!==myId).map(p=><label key={p.id}><input type="checkbox" checked={selected.includes(p.id)} onChange={e=>setSelected(old=>e.target.checked?[...old,p.id]:old.filter(id=>id!==p.id))}/>{p.display_name||'UChat user'}</label>)}</div><button className="primary" disabled={!selected.length}>Create group</button></form></div>}{call&&<div className="callback"><div className="callwindow"><button className="callclose" onClick={()=>endCall()}><X/></button><h2>{call.kind==='video'?'Video call':'Voice call'}</h2><p>{call.status}</p><video ref={remoteRef} autoPlay playsInline className="remotevideo"/><video ref={localRef} autoPlay muted playsInline className="localvideo"/><div className="callcontrols"><button className="hangup" onClick={()=>endCall()}><PhoneOff/></button></div><small>Allow microphone/camera access. Calls may fail behind restrictive NATs; a TURN server is needed for reliable production calls.</small></div></div>}{notice&&<div className="toast">{notice}</div>}</div>
+    if (error) {
+      tell('Could not post status: ' + error.message);
+      return;
+    }
+
+    setStatusText('');
+    await loadStatuses();
+    tell('Status posted.');
+  }
+
+  async function pickContacts() {
+    try {
+      if (!('contacts' in navigator) || !navigator.contacts?.select) {
+        tell(
+          'Contact picker is not supported in this browser. Search by username or display name instead.'
+        );
+        return;
+      }
+
+      const picked = await navigator.contacts.select(
+        ['name', 'email'],
+        { multiple: true }
+      );
+
+      if (!picked.length) return;
+
+      const names = picked
+        .flatMap((x) => x.name || [])
+        .map((x) => x.toLowerCase());
+
+      const matches = people.filter(
+        (p) =>
+          p.id !== session.user.id &&
+          names.includes((p.display_name || '').toLowerCase())
+      );
+
+      if (matches.length) {
+        setTab('people');
+        tell(
+          'Found ' +
+            matches.length +
+            ' matching UChat contact(s). Search results are available in People.'
+        );
+      } else {
+        tell(
+          'No matching UChat accounts found for selected contact names. Try searching their UChat username.'
+        );
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        tell('Could not access contacts. You can search by username instead.');
+      }
+    }
+  }
+
+  async function loadRooms() {
+    const { data, error } = await supabase
+      .from('room_members')
+      .select('room_id,rooms(id,name,is_group,created_by,created_at)')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      tell(error.message);
+      return;
+    }
+
+    const base = (data || []).map((x) => x.rooms).filter(Boolean);
+    const ids = [...new Set(base.map((r) => r.id))];
+
+    if (!ids.length) {
+      setRooms([]);
+      return;
+    }
+
+    const { data: members } = await supabase
+      .from('room_members')
+      .select('room_id,user_id')
+      .in('room_id', ids);
+
+    const mapped = base.map((r) => {
+      if (r.is_group) return r;
+
+      const other = (members || []).find(
+        (m) =>
+          m.room_id === r.id &&
+          m.user_id !== session?.user?.id
+      );
+
+      const person = people.find((p) => p.id === other?.user_id);
+
+      return {
+        ...r,
+        display_title: person?.display_name || 'Direct chat'
+      };
+    });
+
+    setRooms(mapped);
+  }
+
+  useEffect(() => {
+    if (!active || !session) return;
+
+    let alive = true;
+    seenRef.current = new Set();
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('id,room_id,sender_id,body,image_url,created_at,read_by')
+        .eq('room_id', active.id)
+        .order('created_at');
+
+      if (error) tell(error.message);
+
+      if (alive) {
+        setMessages(data || []);
+        markRead(data || []);
+      }
+    })();
+
+    const ch = supabase
+      .channel('room-' + active.id)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: 'room_id=eq.' + active.id
+        },
+        (payload) => {
+          setMessages((old) =>
+            old.some((m) => m.id === payload.new.id)
+              ? old
+              : [...old, payload.new]
+          );
+
+          if (payload.new.sender_id !== session.user.id) {
+            markRead([payload.new]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      alive = false;
+      supabase.removeChannel(ch);
+    };
+  }, [active?.id, session?.user?.id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  async function markRead(rows) {
+    for (const m of rows) {
+      if (
+        m.sender_id === session?.user?.id ||
+        seenRef.current.has(m.id)
+      ) {
+        continue;
+      }
+
+      seenRef.current.add(m.id);
+
+      const ids = Array.isArray(m.read_by) ? m.read_by : [];
+
+      if (!ids.includes(session.user.id)) {
+        await supabase
+          .from('messages')
+          .update({ read_by: [...ids, session.user.id] })
+          .eq('id', m.id);
+      }
+    }
+  }
+
+  async function authSubmit(e) {
+    e.preventDefault();
+    setNotice('');
+
+    if (!supabase) return;
+
+    let result;
+
+    if (authMode === 'signup') {
+      result = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin + '/'
+        }
+      });
+    } else {
+      result = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+    }
+
+    if (result.error) {
+      tell(result.error.message);
+    } else if (authMode === 'signup' && !result.data.session) {
+      tell('Check your email to confirm your account, then log in.');
+    } else {
+      tell(authMode === 'signup' ? 'Account created.' : 'Welcome back.');
+    }
+  }
+
+  async function authProvider(provider) {
+    setNotice('');
+
+    if (!supabase) return;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: window.location.origin + '/'
+      }
+    });
+
+    if (error) tell(error.message);
+  }
+
+  async function sendPhoneCode(e) {
+    e?.preventDefault();
+
+    if (!supabase) return;
+
+    const national = phone
+      .trim()
+      .replace(/[\s()-]/g, '')
+      .replace(/^0/, '');
+
+    if (!/^\d{6,14}$/.test(national)) {
+      return tell(
+        'Enter a valid phone number without the country code.'
+      );
+    }
+
+    const fullPhone = countryCode + national;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: fullPhone,
+      options: {
+        shouldCreateUser: authMode === 'signup'
+      }
+    });
+
+    if (error) {
+      tell(error.message);
+      return;
+    }
+
+    setPhone(fullPhone);
+    setPhoneStep(true);
+    tell('Verification code sent to ' + fullPhone + '.');
+  }
+
+  async function verifyPhoneCode(e) {
+    e?.preventDefault();
+
+    if (!supabase) return;
+
+    if (!/^\d{4,8}$/.test(phoneOtp.trim())) {
+      return tell('Enter the SMS verification code.');
+    }
+
+    const { error } = await supabase.auth.verifyOtp({
+      phone,
+      token: phoneOtp.trim(),
+      type: 'sms'
+    });
+
+    if (error) {
+      tell(error.message);
+      return;
+    }
+
+    setPhoneStep(false);
+    setPhoneOtp('');
+    tell('Phone number verified. Welcome to UChat.');
+  }
+
+  async function saveDisplayName(e) {
+    e.preventDefault();
+
+    const value = newDisplayName.trim();
+    const handle = newUsername.trim().toLowerCase().replace(/^@/, '');
+
+    if (!value) return tell('Enter a display name.');
+
+    if (value.length > 40) {
+      return tell('Display name must be 40 characters or fewer.');
+    }
+
+    if (!/^[a-z0-9_]{3,24}$/.test(handle)) {
+      return tell(
+        'Username must be 3–24 characters: letters, numbers, underscores.'
+      );
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: session.user.id,
+        display_name: value,
+        username: handle,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) {
+      tell('Could not save display name: ' + error.message);
+      return;
+    }
+
+    setProfile((old) => ({
+      ...old,
+      display_name: value,
+      username: handle
+    }));
+
+    await loadPeople();
+    setShowSettings(false);
+    tell('Display name updated.');
+  }
+
+  async function signOut() {
+    await endCall();
+    await supabase.auth.signOut();
+    setProfile(null);
+    setActive(null);
+    setRooms([]);
+    setMessages([]);
+  }
+
+  async function openDirect(person) {
+    if (person.id === session.user.id) {
+      tell('That is your own account.');
+      return;
+    }
+
+    const { data, error } = await supabase.rpc(
+      'get_or_create_direct_room',
+      { other_user: person.id }
+    );
+
+    if (error) {
+      tell('Could not open chat: ' + error.message);
+      return;
+    }
+
+    await loadRooms();
+
+    const { data: r } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('id', data)
+      .single();
+
+    setActive({
+      ...r,
+      display_title: person.display_name || 'Direct chat'
+    });
+
+    setTab('chats');
+    setShowNew(false);
+  }
+
+  async function createGroup(e) {
+    e.preventDefault();
+
+    if (!groupName.trim() || !selected.length) return;
+
+    const { data, error } = await supabase
+      .from('rooms')
+      .insert({
+        name: groupName.trim(),
+        is_group: true,
+        created_by: session.user.id
+      })
+      .select()
+      .single();
+
+    if (error) {
+      tell(error.message);
+      return;
+    }
+
+    const members = [session.user.id, ...selected];
+
+    const { error: me } = await supabase
+      .from('room_members')
+      .insert(
+        members.map((user_id) => ({
+          room_id: data.id,
+          user_id
+        }))
+      );
+
+    if (me) {
+      tell(me.message);
+      return;
+    }
+
+    await loadRooms();
+    setActive(data);
+    setShowNew(false);
+    setGroupName('');
+    setSelected([]);
+    tell('Group created.');
+  }
+
+  async function sendMessage(e) {
+    e?.preventDefault();
+
+    if (!active || !draft.trim()) return;
+
+    const body = draft.trim();
+    setDraft('');
+
+    const { error } = await supabase
+      .from('messages')
+      .insert({
+        room_id: active.id,
+        sender_id: session.user.id,
+        body,
+        read_by: [session.user.id]
+      });
+
+    if (error) {
+      setDraft(body);
+      tell(error.message);
+    }
+  }
+
+  async function uploadImage(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+
+    if (!file || !active) return;
+
+    if (!file.type.startsWith('image/')) {
+      return tell('Choose an image file.');
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return tell('Image must be 5 MB or smaller.');
+    }
+
+    const path =
+      `${session.user.id}/${crypto.randomUUID()}-` +
+      file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+    const { error: up } = await supabase.storage
+      .from('chat-images')
+      .upload(path, file, { upsert: false });
+
+    if (up) {
+      return tell('Image upload failed: ' + up.message);
+    }
+
+    const { data } = supabase.storage
+      .from('chat-images')
+      .getPublicUrl(path);
+
+    const { error } = await supabase
+      .from('messages')
+      .insert({
+        room_id: active.id,
+        sender_id: session.user.id,
+        image_url: data.publicUrl,
+        body: '',
+        read_by: [session.user.id]
+      });
+
+    if (error) tell(error.message);
+  }
+
+  async function startCall(kind) {
+    if (!active || active.is_group) {
+      return tell(
+        'Calls are available in one-to-one chats only in this starter.'
+      );
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: kind === 'video'
+      });
+
+      localRef.current.srcObject = stream;
+      setCall({ kind, status: 'Calling…' });
+
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }
+        ]
+      });
+
+      pcRef.current = pc;
+      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+
+      pc.ontrack = (e) => {
+        if (remoteRef.current) {
+          remoteRef.current.srcObject = e.streams[0];
+        }
+      };
+
+      const targetChannel = 'call-room-' + active.id;
+
+      const ch = supabase.channel(targetChannel, {
+        config: {
+          private: true,
+          broadcast: { self: false }
+        }
+      });
+
+      channelRef.current = ch;
+
+      ch.on('broadcast', { event: 'signal' }, async ({ payload }) => {
+        if (payload.from === session.user.id) return;
+
+        if (payload.type === 'offer') {
+          await pc.setRemoteDescription(payload.sdp);
+
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+
+          await ch.send({
+            type: 'broadcast',
+            event: 'signal',
+            payload: {
+              type: 'answer',
+              sdp: pc.localDescription,
+              from: session.user.id
+            }
+          });
+        } else if (
+          payload.type === 'answer' &&
+          pc.signalingState === 'have-local-offer'
+        ) {
+          await pc.setRemoteDescription(payload.sdp);
+        } else if (payload.type === 'ice' && payload.candidate) {
+          try {
+            await pc.addIceCandidate(payload.candidate);
+          } catch {}
+        } else if (payload.type === 'hangup') {
+          endCall(false);
+        }
+      }).subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+
+          await ch.send({
+            type: 'broadcast',
+            event: 'signal',
+            payload: {
+              type: 'offer',
+              sdp: pc.localDescription,
+              from: session.user.id
+            }
+          });
+        }
+      });
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          ch.send({
+            type: 'broadcast',
+            event: 'signal',
+            payload: {
+              type: 'ice',
+              candidate: e.candidate,
+              from: session.user.id
+            }
+          });
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'connected') {
+          setCall((c) => c ? { ...c, status: 'Connected' } : c);
+        }
+
+        if (
+          ['failed', 'disconnected'].includes(pc.connectionState)
+        ) {
+          setCall((c) =>
+            c ? { ...c, status: 'Connection issue' } : c
+          );
+        }
+      };
+    } catch (e) {
+      tell(
+        'Could not start call. Check microphone/camera permissions. ' +
+        e.message
+      );
+      await endCall();
+    }
+  }
+
+  async function endCall(sendSignal = true) {
+    if (sendSignal && channelRef.current) {
+      await channelRef.current
+        .send({
+          type: 'broadcast',
+          event: 'signal',
+          payload: {
+            type: 'hangup',
+            from: session?.user?.id
+          }
+        })
+        .catch(() => {});
+    }
+
+    if (channelRef.current) {
+      supabase?.removeChannel(channelRef.current);
+    }
+
+    channelRef.current = null;
+    pcRef.current?.close();
+    pcRef.current = null;
+
+    localRef.current?.srcObject?.getTracks().forEach((t) => t.stop());
+    remoteRef.current?.srcObject?.getTracks().forEach((t) => t.stop());
+
+    if (localRef.current) localRef.current.srcObject = null;
+    if (remoteRef.current) remoteRef.current.srcObject = null;
+
+    setCall(null);
+  }
+
+  if (!supabase) {
+    return (
+      <div className="setup">
+        <h1>UChat</h1>
+        <p>One setup step before UChat can run.</p>
+        <p>
+          Create a Supabase project, then copy <code>.env.example</code>
+          {' '}to <code>.env</code> and enter your project URL and publishable key.
+        </p>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <main className="auth">
+        <div className="brand">
+          <span className="logo">
+            <img src="./uchat-logo.svg" alt="" />
+          </span>
+          <h1>UChat</h1>
+          <p>Simple conversations. Wherever you are.</p>
+        </div>
+
+        <form
+          className="authform"
+          onSubmit={
+            authMethod === 'phone'
+              ? (phoneStep ? verifyPhoneCode : sendPhoneCode)
+              : authSubmit
+          }
+        >
+          <h2>
+            {phoneStep
+              ? 'Verify your phone'
+              : authMode === 'login'
+                ? 'Welcome back'
+                : 'Create your account'}
+          </h2>
+
+          <div className="auth-methods">
+            <button
+              type="button"
+              className={authMethod === 'email' ? 'chosen' : ''}
+              onClick={() => {
+                setAuthMethod('email');
+                setPhoneStep(false);
+              }}
+            >
+              Email
+            </button>
+            <button
+              type="button"
+              className={authMethod === 'phone' ? 'chosen' : ''}
+              onClick={() => {
+                setAuthMethod('phone');
+                setPhoneStep(false);
+              }}
+            >
+              Phone number
+            </button>
+          </div>
+
+          {authMethod === 'email' ? (
+            <>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email address"
+                required
+              />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password (at least 8 characters)"
+                minLength={8}
+                required
+              />
+              <button className="primary">
+                {authMode === 'login' ? 'Log in' : 'Create account'}
+              </button>
+            </>
+          ) : phoneStep ? (
+            <>
+              <p className="phone-help">
+                Enter the SMS code sent to <strong>{phone}</strong>.
+              </p>
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={phoneOtp}
+                onChange={(e) => setPhoneOtp(e.target.value)}
+                placeholder="SMS verification code"
+                required
+              />
+              <button className="primary">Verify phone number</button>
+              <button
+                type="button"
+                className="link phone-resend"
+                onClick={sendPhoneCode}
+              >
+                Send code again
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="phone-entry">
+                <select
+                  aria-label="Country calling code"
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                >
+                  <option value="+256">🇺🇬 Uganda (+256)</option>
+                  <option value="+254">🇰🇪 Kenya (+254)</option>
+                  <option value="+255">🇹🇿 Tanzania (+255)</option>
+                  <option value="+250">🇷🇼 Rwanda (+250)</option>
+                  <option value="+211">🇸🇸 South Sudan (+211)</option>
+                  <option value="+234">🇳🇬 Nigeria (+234)</option>
+                  <option value="+233">🇬🇭 Ghana (+233)</option>
+                  <option value="+251">🇪🇹 Ethiopia (+251)</option>
+                  <option value="+20">🇪🇬 Egypt (+20)</option>
+                  <option value="+212">🇲🇦 Morocco (+212)</option>
+                  <option value="+27">🇿🇦 South Africa (+27)</option>
+                  <option value="+1">🇺🇸 USA/Canada (+1)</option>
+                  <option value="+44">🇬🇧 United Kingdom (+44)</option>
+                  <option value="+353">🇮🇪 Ireland (+353)</option>
+                  <option value="+33">🇫🇷 France (+33)</option>
+                  <option value="+49">🇩🇪 Germany (+49)</option>
+                  <option value="+39">🇮🇹 Italy (+39)</option>
+                  <option value="+34">🇪🇸 Spain (+34)</option>
+                  <option value="+351">🇵🇹 Portugal (+351)</option>
+                  <option value="+91">🇮🇳 India (+91)</option>
+                  <option value="+86">🇨🇳 China (+86)</option>
+                  <option value="+81">🇯🇵 Japan (+81)</option>
+                  <option value="+82">🇰🇷 South Korea (+82)</option>
+                  <option value="+61">🇦🇺 Australia (+61)</option>
+                  <option value="+64">🇳🇿 New Zealand (+64)</option>
+                  <option value="+971">🇦🇪 UAE (+971)</option>
+                  <option value="+966">🇸🇦 Saudi Arabia (+966)</option>
+                  <option value="+974">🇶🇦 Qatar (+974)</option>
+                  <option value="+90">🇹🇷 Türkiye (+90)</option>
+                  <option value="+7">🇰🇿 Kazakhstan/Russia (+7)</option>
+                  <option value="+55">🇧🇷 Brazil (+55)</option>
+                  <option value="+52">🇲🇽 Mexico (+52)</option>
+                </select>
+
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone number"
+                  required
+                />
+              </div>
+
+              <p className="phone-help">
+                We’ll text you a verification code. Enter your number without
+                the country code.
+              </p>
+              <button className="primary">Send verification code</button>
+            </>
+          )}
+
+          {!phoneStep && (
+            <>
+              <div className="authdivider">
+                <span>or continue with</span>
+              </div>
+
+              <button
+                type="button"
+                className="oauthbtn"
+                onClick={() => authProvider('google')}
+              >
+                <span className="googlemark">G</span>
+                {' '}Continue with Google
+              </button>
+
+              <button
+                type="button"
+                className="oauthbtn"
+                onClick={() => authProvider('apple')}
+              >
+                <span className="applemark">●</span>
+                {' '}Continue with Apple
+              </button>
+            </>
+          )}
+
+          <p>
+            {authMode === 'login'
+              ? 'New to UChat?'
+              : 'Already registered?'}{' '}
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                setAuthMode(authMode === 'login' ? 'signup' : 'login');
+                setPhoneStep(false);
+                setPhoneOtp('');
+              }}
+            >
+              {authMode === 'login' ? 'Create an account' : 'Log in'}
+            </button>
+          </p>
+        </form>
+
+        {notice && <div className="toast">{notice}</div>}
+      </main>
+    );
+  }
+
+  const myId = session.user.id;
+
+  const shownPeople = people.filter(
+    (p) =>
+      p.id !== myId &&
+      (
+        (p.display_name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (p.username || '')
+          .toLowerCase()
+          .includes(search.toLowerCase().replace(/^@/, ''))
+      )
+  );
+
+  const shownRooms = rooms.filter(
+    (r) =>
+      (r.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (
+        !r.is_group &&
+        people.some(
+          (p) =>
+            r.name?.toLowerCase().includes(p.display_name?.toLowerCase()) &&
+            p.display_name?.toLowerCase().includes(search.toLowerCase())
+        )
+      )
+  );
+
+  return (
+    <div className="app">
+      <header className="topbar">
+        <div className="brandmini">
+          <span className="logo">
+            <img src="./uchat-logo.svg" alt="" />
+          </span>
+          <strong>UChat</strong>
+        </div>
+
+        <div className="topright">
+          <span className="userlabel">
+            {profile?.display_name || session.user.email}
+          </span>
+
+          <button
+            className="iconbtn"
+            title="Settings"
+            onClick={() => {
+              setNewDisplayName(profile?.display_name || '');
+              setNewUsername(profile?.username || '');
+              setShowSettings(true);
+            }}
+          >
+            <SettingsIcon size={18} />
+          </button>
+
+          <button
+            className="iconbtn"
+            title="Sign out"
+            onClick={signOut}
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
+      </header>
+
+      <div className="workspace">
+        <aside className={`sidebar ${active ? 'hide-mobile' : ''}`}>
+          {tab === 'chats' && (
+            <div className="wa-chat-title">
+              <h1>Chats</h1>
+              <button
+                className="wa-newchat"
+                onClick={() => {
+                  setTab('people');
+                  setSearch('');
+                }}
+                aria-label="New chat"
+              >
+                <Plus size={25} />
+              </button>
+            </div>
+          )}
+
+          <div className="searchbox">
+            <Search size={19} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={
+                tab === 'chats'
+                  ? 'Ask UChat or Search'
+                  : tab === 'groups'
+                    ? 'Search groups'
+                    : tab === 'status'
+                      ? 'Search updates'
+                      : 'Search username or name'
+              }
+            />
+          </div>
+
+          {/* Corrected filter section: the closing brace is required here. */}
+          {tab === 'chats' && (
+            <div className="wa-filters">
+              <button className="selected">All</button>
+              <button
+                onClick={() =>
+                  tell('Unread filtering is not implemented yet.')
+                }
+              >
+                Unread
+              </button>
+              <button
+                onClick={() =>
+                  tell('Favorites are not implemented yet.')
+                }
+              >
+                Favorites
+              </button>
+              <button onClick={() => setTab('groups')}>
+                Groups
+              </button>
+              <button
+                className="filter-add"
+                onClick={() => {
+                  setTab('people');
+                  setSearch('');
+                }}
+                aria-label="Find a person"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
+          )}
+
+          {tab === 'chats' ? (
+            <>
+              <div className="listheading">
+                YOUR CONVERSATIONS
+                <button
+                  className="iconbtn"
+                  onClick={() => setShowNew(true)}
+                  title="Create group"
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
+
+              <div className="roomlist">
+                {shownRooms.map((r) => (
+                  <button
+                    key={r.id}
+                    className={`roomrow ${
+                      active?.id === r.id ? 'chosen' : ''
+                    }`}
+                    onClick={() => setActive(r)}
+                  >
+                    <span className="avatar">
+                      {r.is_group
+                        ? <Users size={18} />
+                        : (r.name || 'C')[0].toUpperCase()}
+                    </span>
+                    <span className="roomtext">
+                      <strong>
+                        {r.is_group
+                          ? (r.name || 'Group')
+                          : (r.display_title || 'Direct chat')}
+                      </strong>
+                      <small>
+                        {r.is_group ? 'Group chat' : 'Private chat'}
+                      </small>
+                    </span>
+                  </button>
+                ))}
+
+                {!shownRooms.length && (
+                  <p className="empty">
+                    No chats yet. Open People to start one.
+                  </p>
+                )}
+              </div>
+            </>
+          ) : tab === 'groups' ? (
+            <>
+              <div className="listheading">
+                YOUR GROUPS
+                <button
+                  className="iconbtn"
+                  onClick={() => setShowNew(true)}
+                  title="Create group"
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
+
+              <div className="roomlist">
+                {shownRooms
+                  .filter((r) => r.is_group)
+                  .map((r) => (
+                    <button
+                      key={r.id}
+                      className={`roomrow ${
+                        active?.id === r.id ? 'chosen' : ''
+                      }`}
+                      onClick={() => setActive(r)}
+                    >
+                      <span className="avatar">
+                        <UsersRound size={18} />
+                      </span>
+                      <span className="roomtext">
+                        <strong>{r.name || 'Group'}</strong>
+                        <small>Group conversation</small>
+                      </span>
+                    </button>
+                  ))}
+
+                {!shownRooms.some((r) => r.is_group) && (
+                  <p className="empty">
+                    No groups yet. Use + to create one.
+                  </p>
+                )}
+              </div>
+            </>
+          ) : tab === 'status' ? (
+            <>
+              <div className="listheading">RECENT STATUS</div>
+
+              <form className="statusform" onSubmit={postStatus}>
+                <textarea
+                  value={statusText}
+                  onChange={(e) => setStatusText(e.target.value)}
+                  placeholder="Share a status update..."
+                  maxLength={280}
+                />
+                <button
+                  className="primary"
+                  disabled={!statusText.trim()}
+                >
+                  Post status
+                </button>
+              </form>
+
+              <div className="roomlist">
+                {statuses.map((st) => (
+                  <div className="statusrow" key={st.id}>
+                    <span className="avatar">
+                      <Activity size={16} />
+                    </span>
+                    <div>
+                      <strong>
+                        {people.find((p) => p.id === st.user_id)
+                          ?.display_name || 'UChat user'}
+                      </strong>
+                      <p>{st.body}</p>
+                      <small>
+                        {new Date(st.created_at).toLocaleString()}
+                      </small>
+                    </div>
+                  </div>
+                ))}
+
+                {!statuses.length && (
+                  <p className="empty">No status updates yet.</p>
+                )}
+              </div>
+            </>
+          ) : tab === 'calls' ? (
+            <>
+              <div className="listheading">CALLS</div>
+              <div className="call-list-placeholder">
+                <Phone size={30} />
+                <strong>Your calls</strong>
+                <p>
+                  Voice and video calls with UChat contacts will appear here.
+                </p>
+                <button
+                  className="primary"
+                  onClick={() => setTab('people')}
+                >
+                  Start a call
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="listheading">
+                FIND PEOPLE
+                <button
+                  className="iconbtn"
+                  onClick={pickContacts}
+                  title="Choose from device contacts"
+                >
+                  <UserRoundPlus size={18} />
+                </button>
+              </div>
+
+              <button className="contactpick" onClick={pickContacts}>
+                <UserRoundPlus size={16} />
+                {' '}Choose from device contacts
+              </button>
+
+              <div className="roomlist">
+                {shownPeople.map((p) => (
+                  <button
+                    key={p.id}
+                    className="roomrow"
+                    onClick={() => openDirect(p)}
+                  >
+                    <span className="avatar">
+                      {(p.display_name || 'U')[0].toUpperCase()}
+                    </span>
+                    <span className="roomtext">
+                      <strong>{p.display_name || 'UChat user'}</strong>
+                      <small>
+                        @{p.username || 'username-not-set'} · Start a
+                        conversation
+                      </small>
+                    </span>
+                    <CirclePlus size={17} />
+                  </button>
+                ))}
+
+                {!shownPeople.length && (
+                  <p className="empty">
+                    No matching users. Search their username or display name.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
+          <div className="sidebarfoot">UChat · Stay connected</div>
+        </aside>
+
+        <section
+          className={`chatpane ${!active ? 'no-active' : ''} ${
+            active ? 'show-mobile' : ''
+          }`}
+        >
+          {active ? (
+            <>
+              <div className="chathead">
+                <button
+                  className="backmobile"
+                  onClick={() => setActive(null)}
+                >
+                  ‹
+                </button>
+
+                <span className="avatar">
+                  {active.is_group
+                    ? <Users size={18} />
+                    : (active.name || 'C')[0].toUpperCase()}
+                </span>
+
+                <div className="chatheadtext">
+                  <strong>
+                    {active.is_group
+                      ? (active.name || 'Group')
+                      : (active.display_title || 'Direct chat')}
+                  </strong>
+                  <small>
+                    {active.is_group
+                      ? 'Group conversation'
+                      : 'Messages are live'}
+                  </small>
+                </div>
+
+                <div className="callbuttons">
+                  <button
+                    title="Voice call"
+                    onClick={() => startCall('audio')}
+                  >
+                    <Phone size={18} />
+                  </button>
+                  <button
+                    title="Video call"
+                    onClick={() => startCall('video')}
+                  >
+                    <Video size={19} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="messages">
+                {messages.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`bubblewrap ${
+                      m.sender_id === myId ? 'mine' : 'theirs'
+                    }`}
+                  >
+                    <div className="bubble">
+                      {m.sender_id !== myId && active.is_group && (
+                        <small className="sender">
+                          {people.find((p) => p.id === m.sender_id)
+                            ?.display_name || 'Member'}
+                        </small>
+                      )}
+
+                      {m.image_url && (
+                        <a
+                          href={m.image_url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <img
+                            className="chatimage"
+                            src={m.image_url}
+                            alt="Shared image"
+                          />
+                        </a>
+                      )}
+
+                      {m.body && <div>{m.body}</div>}
+
+                      <div className="meta">
+                        {new Date(m.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                        {m.sender_id === myId && (
+                          <CheckCheck
+                            size={14}
+                            className={
+                              (m.read_by || []).length > 1 ? 'read' : ''
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <div ref={bottomRef} />
+
+                {!messages.length && (
+                  <div className="emptychat">
+                    Say hello 👋
+                    <small>Your messages will appear here.</small>
+                  </div>
+                )}
+              </div>
+
+              <form className="composer" onSubmit={sendMessage}>
+                <label className="attach" title="Share image">
+                  <ImagePlus size={21} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={uploadImage}
+                  />
+                </label>
+
+                <input
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder="Type a message"
+                  maxLength={4000}
+                />
+
+                <button
+                  className="sendbtn"
+                  disabled={!draft.trim()}
+                  aria-label="Send"
+                >
+                  <Send size={19} />
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="welcome">
+              <div className="welcomeicon">
+                <MessageCircle size={54} />
+              </div>
+              <h2>UChat Web</h2>
+              <p>Send messages, share moments, and stay connected.</p>
+              <small>
+                Select a conversation or find people to start chatting.
+              </small>
+              <div className="encrypted">
+                Private conversations · Real-time updates
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <div className="floating-nav-wrap">
+        <nav className="floating-nav wa-dock" aria-label="Main navigation">
+          <button
+            className={tab === 'status' ? 'active' : ''}
+            onClick={() => setTab('status')}
+            aria-label="Updates"
+          >
+            <Activity />
+            <span>Updates</span>
+          </button>
+
+          <button
+            className={tab === 'calls' ? 'active' : ''}
+            onClick={() => setTab('calls')}
+            aria-label="Calls"
+          >
+            <Phone />
+            <span>Calls</span>
+          </button>
+
+          <button
+            className={tab === 'groups' ? 'active' : ''}
+            onClick={() => setTab('groups')}
+            aria-label="Communities"
+          >
+            <UsersRound />
+            <span>Communities</span>
+          </button>
+
+          <button
+            className={tab === 'chats' ? 'active' : ''}
+            onClick={() => setTab('chats')}
+            aria-label="Chats"
+          >
+            <MessageCircle />
+            <span>Chats</span>
+          </button>
+
+          <button
+            className="nav-settings"
+            onClick={() => {
+              setNewDisplayName(profile?.display_name || '');
+              setNewUsername(profile?.username || '');
+              setShowSettings(true);
+            }}
+            aria-label="You"
+          >
+            <span className="you-avatar">
+              {(profile?.display_name || 'U').slice(0, 1).toUpperCase()}
+            </span>
+            <span>You</span>
+          </button>
+        </nav>
+      </div>
+
+      {showSettings && (
+        <div
+          className="modalback"
+          onClick={() => setShowSettings(false)}
+        >
+          <form
+            className="modal"
+            onSubmit={saveDisplayName}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modalhead">
+              <h2>Settings</h2>
+              <button
+                type="button"
+                className="iconbtn"
+                onClick={() => setShowSettings(false)}
+              >
+                <X />
+              </button>
+            </div>
+
+            <label className="settinglabel">Display name</label>
+            <input
+              value={newDisplayName}
+              onChange={(e) => setNewDisplayName(e.target.value)}
+              placeholder="Your display name"
+              maxLength={40}
+              required
+            />
+            <p className="hint">
+              You can change how your name appears to other UChat users at
+              any time.
+            </p>
+
+            <label className="settinglabel">Username</label>
+            <input
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="username"
+              maxLength={24}
+              required
+            />
+            <p className="hint">
+              Unique username, 3–24 characters. Letters, numbers and
+              underscores only.
+            </p>
+
+            <label className="settinglabel">Appearance</label>
+            <button
+              type="button"
+              className="themebutton"
+              onClick={() =>
+                setTheme(theme === 'light' ? 'dark' : 'light')
+              }
+            >
+              {theme === 'light'
+                ? <Moon size={17} />
+                : <Sun size={17} />}
+              {' '}Switch to {theme === 'light' ? 'dark' : 'light'} mode
+            </button>
+
+            <button className="primary">Save changes</button>
+          </form>
+        </div>
+      )}
+
+      {showNew && (
+        <div className="modalback" onClick={() => setShowNew(false)}>
+          <form
+            className="modal"
+            onSubmit={createGroup}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modalhead">
+              <h2>Create a group</h2>
+              <button
+                type="button"
+                className="iconbtn"
+                onClick={() => setShowNew(false)}
+              >
+                <X />
+              </button>
+            </div>
+
+            <input
+              placeholder="Group name"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              maxLength={60}
+              required
+            />
+
+            <p className="hint">Choose members</p>
+
+            <div className="memberchoices">
+              {people
+                .filter((p) => p.id !== myId)
+                .map((p) => (
+                  <label key={p.id}>
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(p.id)}
+                      onChange={(e) =>
+                        setSelected((old) =>
+                          e.target.checked
+                            ? [...old, p.id]
+                            : old.filter((id) => id !== p.id)
+                        )
+                      }
+                    />
+                    {p.display_name || 'UChat user'}
+                  </label>
+                ))}
+            </div>
+
+            <button className="primary" disabled={!selected.length}>
+              Create group
+            </button>
+          </form>
+        </div>
+      )}
+
+      {call && (
+        <div className="callback">
+          <div className="callwindow">
+            <button className="callclose" onClick={() => endCall()}>
+              <X />
+            </button>
+
+            <h2>
+              {call.kind === 'video' ? 'Video call' : 'Voice call'}
+            </h2>
+            <p>{call.status}</p>
+
+            <video
+              ref={remoteRef}
+              autoPlay
+              playsInline
+              className="remotevideo"
+            />
+            <video
+              ref={localRef}
+              autoPlay
+              muted
+              playsInline
+              className="localvideo"
+            />
+
+            <div className="callcontrols">
+              <button className="hangup" onClick={() => endCall()}>
+                <PhoneOff />
+              </button>
+            </div>
+
+            <small>
+              Allow microphone/camera access. Calls may fail behind
+              restrictive NATs; a TURN server is needed for reliable
+              production calls.
+            </small>
+          </div>
+        </div>
+      )}
+
+      {notice && <div className="toast">{notice}</div>}
+    </div>
+  );
 }
 
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById('root')).render(<App />);
