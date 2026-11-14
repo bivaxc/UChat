@@ -1,13 +1,13 @@
 {
-  "name": "UChat",
-  "short_name": "UChat",
-  "description": "Simple conversations. Wherever you are.",
+  "name": "Tech Store Uganda",
+  "short_name": "Tech Store",
+  "description": "Electronics, phone accessories and genuine Windows software in Uganda.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#080808",
-  "theme_color": "#ffd600",
+  "background_color": "#FFFDF7",
+  "theme_color": "#D7192D",
   "icons": [
-    { "src": "./uchat-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "./tech-store-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }
