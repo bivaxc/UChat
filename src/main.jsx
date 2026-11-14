@@ -58,24 +58,7 @@ function App() {
   }
   async function placeOrder(e) {
     e.preventDefault();
-    if (!API) { setNotice('Checkout is not available until the secure Store API is connected.'); return; }
-    setBusy(true);
-    try {
-      const response = await fetch(API + '/orders', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          channel: 'website',
-          customer: { full_name: customer.name, phone_e164: customer.phone },
-          items: cart.map((p) => ({ product_id: p.id, quantity: p.quantity })),
-          delivery: { district: customer.district, town: customer.town, address_line: customer.address }
-        })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Order request failed.');
-      setCart([]); setCheckoutOpen(false); setCartOpen(false);
-      setNotice(data.message || ('Order ' + (data.order_number || '') + ' received.'));
-    } catch (e) { setNotice(e.message); }
-    finally { setBusy(false); }
+    setNotice('Checkout is not live yet. Tech Store is not accepting orders.');
   }
 
   return <div className="app-shell">
@@ -123,7 +106,7 @@ function App() {
       <label>Full name<input required value={customer.name} onChange={(e) => setCustomer({...customer,name:e.target.value})}/></label>
       <label>Phone number<input required value={customer.phone} onChange={(e) => setCustomer({...customer,phone:e.target.value})} placeholder="+256..."/></label>
       {cart.some((p) => p.product_type === 'physical') && <><label>District<input value={customer.district} onChange={(e) => setCustomer({...customer,district:e.target.value})}/></label><label>Town / area<input value={customer.town} onChange={(e) => setCustomer({...customer,town:e.target.value})}/></label><label>Delivery address<input value={customer.address} onChange={(e) => setCustomer({...customer,address:e.target.value})}/></label></>}
-      <div className="total"><span>{count} item(s)</span><b>{money(total)}</b></div><button className="checkout" disabled={busy}>{busy ? 'Submitting...' : 'Place order request'} <ArrowRight size={17}/></button><p className="fine-print">Final delivery charges and payment instructions will be confirmed before fulfilment.</p>
+      <div className="total"><span>{count} item(s)</span><b>{money(total)}</b></div><button className="checkout" disabled={true}>Checkout coming soon <ArrowRight size={17}/></button><p className="fine-print">Final delivery charges and payment instructions will be confirmed before fulfilment.</p>
     </form></section></div>}
     {notice && <div className="toast">{notice}<button onClick={() => setNotice('')}><X size={14}/></button></div>}
   </div>;
