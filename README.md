@@ -9,7 +9,7 @@ A mobile-first ecommerce storefront for Tech Store, targeting customers in Ugand
 - Digital orders use controlled licence allocation and secure delivery.
 
 ## Current implementation status
-The tech-store branch replaces the old UChat messaging interface with the Tech Store storefront UI. The frontend is a prototype until the trusted Store API is deployed and connected. It does not yet accept real orders or payments.
+The application is now a Tech Store storefront UI. The frontend is a prototype until the trusted Store API is deployed and connected. It does not yet accept real orders or payments.
 
 ## Backend architecture
 The existing Supabase project is being repurposed. Store data lives in a separate, non-exposed PostgreSQL schema named store. The schema has RLS enabled and explicit deny policies for direct anon and authenticated access. Only trusted server-side services should access it using server-held credentials. Never put a Supabase service-role or secret key in browser code.
