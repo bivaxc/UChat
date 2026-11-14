@@ -19,7 +19,7 @@ function App() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [customer, setCustomer] = useState({ name: '', phone: '+256', district: '', town: '', address: '' });
+  const [customer, setCustomer] = useState({ name: '', phone: '+256', paymentPhone: '+256', provider: 'mtn_momo', district: '', town: '', address: '' });
 
   async function loadCatalog() {
     setLoading(true); setError('');
@@ -58,7 +58,24 @@ function App() {
   }
   async function placeOrder(e) {
     e.preventDefault();
-    setNotice('Checkout is not live yet. Tech Store is not accepting orders.');
+    if (!cart.length) return;
+    setBusy(true);
+    setNotice('');
+    try {
+      const response = await fetch(API + '/checkout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: customer.name, phone: customer.paymentPhone, provider: customer.provider,
+          district: customer.district, town: customer.town, address: customer.address,
+          items: cart.map((p) => ({ product_id: p.id, quantity: p.quantity }))
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Could not start mobile money checkout.');
+      setCart([]); setCheckoutOpen(false); setCartOpen(false);
+      setNotice(data.message || ('Order ' + data.order_number + ' created. Approve the payment prompt on your phone.'));
+    } catch (err) { setNotice(err.message); }
+    finally { setBusy(false); }
   }
 
   return <div className="app-shell">
@@ -104,10 +121,11 @@ function App() {
 
     {checkoutOpen && <div className="overlay"><section className="checkout-modal"><div className="drawer-head"><div><span className="eyebrow">ORDER REQUEST</span><h2>Checkout</h2></div><button className="close" onClick={() => setCheckoutOpen(false)}><X/></button></div><form onSubmit={placeOrder}>
       <label>Full name<input required value={customer.name} onChange={(e) => setCustomer({...customer,name:e.target.value})}/></label>
-      <label>Phone number<input required value={customer.phone} onChange={(e) => setCustomer({...customer,phone:e.target.value})} placeholder="+256..."/></label>
-      {cart.some((p) => p.product_type === 'physical') && <><label>District<input value={customer.district} onChange={(e) => setCustomer({...customer,district:e.target.value})}/></label><label>Town / area<input value={customer.town} onChange={(e) => setCustomer({...customer,town:e.target.value})}/></label><label>Delivery address<input value={customer.address} onChange={(e) => setCustomer({...customer,address:e.target.value})}/></label></>}
-      <div className="total"><span>{count} item(s)</span><b>{money(total)}</b></div><button className="checkout" disabled={true}>Checkout coming soon <ArrowRight size={17}/></button><p className="fine-print">Final delivery charges and payment instructions will be confirmed before fulfilment.</p>
-    </form></section></div>}
+      <label>Mobile money network<select required value={customer.provider} onChange={(e) => setCustomer({...customer,provider:e.target.value})}><option value="mtn_momo">MTN Mobile Money</option><option value="airtel_money">Airtel Money</option></select></label>
+      <label>Number to receive payment prompt<input required inputMode="tel" value={customer.paymentPhone} onChange={(e) => setCustomer({...customer,paymentPhone:e.target.value})} placeholder="2567XXXXXXXX"/><small className="fine-print">Use the number registered for the selected mobile money service. Enter it in 256 format.</small></label>
+      {cart.some((p) => p.product_type === 'physical') && <><label>District<input required value={customer.district} onChange={(e) => setCustomer({...customer,district:e.target.value})}/></label><label>Town / area<input required value={customer.town} onChange={(e) => setCustomer({...customer,town:e.target.value})}/></label><label>Delivery address<input required value={customer.address} onChange={(e) => setCustomer({...customer,address:e.target.value})}/></>}
+      <div className="total"><span>{count} item(s) · delivery fee confirmed separately</span><b>{money(total)}</b></div><button className="checkout" disabled={busy}>{busy ? 'Starting payment...' : 'Place order & request payment'} <ArrowRight size={17}/></button><p className="fine-print">A payment prompt will be sent to your selected mobile money number. Your order is confirmed only after the gateway verifies payment. Never share your mobile money PIN.</p>
+      </form></section></div>}
     {notice && <div className="toast">{notice}<button onClick={() => setNotice('')}><X size={14}/></button></div>}
   </div>;
 }
