@@ -4,6 +4,7 @@ import { Search, ShoppingBag, ArrowRight, Laptop, Smartphone, Headphones, Cable,
 import './style.css';
 
 const API = (import.meta.env.VITE_STORE_API_URL || 'https://gwtvbyrfjjyvcaxdnfex.supabase.co/functions/v1/tech-store-api').replace(/\/$/, '');
+const CHECKOUT_API = 'https://gwtvbyrfjjyvcaxdnfex.supabase.co/functions/v1/tech-store-checkout';
 const money = (n) => new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(Number(n || 0));
 
 function App() {
@@ -62,7 +63,7 @@ function App() {
     setBusy(true);
     setNotice('');
     try {
-      const response = await fetch(API + '/checkout', {
+      const response = await fetch(CHECKOUT_API, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: customer.name, phone: customer.paymentPhone, provider: customer.provider,
