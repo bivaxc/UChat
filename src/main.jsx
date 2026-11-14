@@ -63,7 +63,7 @@ function App() {
 
   return <div className="app-shell">
     <header className="header">
-      <a className="brand" href="/"><span className="brand-mark">T</span><span>TECH<span>STORE</span><small>UGANDA</small></span></a>
+      <a className="brand" href="/"><img className="brand-mark" src="/tech-store-icon.svg" alt="" /><span>TECH<span>STORE</span><small>UGANDA</small></span></a>
       <nav><a href="#shop">Shop</a><a href="#software">Windows software</a><a href="#about">Why Tech Store</a></nav>
       <button className="cart-button" onClick={() => setCartOpen(true)}><ShoppingBag size={18}/> Cart <b>{count}</b></button>
     </header>
@@ -96,7 +96,7 @@ function App() {
       <section className="software" id="software"><div className="software-icon"><Laptop size={28}/></div><div><span className="eyebrow">DIGITAL PRODUCTS</span><h2>Windows software, made simple.</h2><p>Legitimate licences for Windows 10 and Windows 11, with compatibility and licence terms shown before purchase.</p></div><button onClick={() => { setSoftware(true); setCategory('all'); document.getElementById('shop').scrollIntoView({ behavior: 'smooth' }); }}>Browse software <ArrowRight size={16}/></button></section>
     </main>
 
-    <footer><a className="brand" href="/"><span className="brand-mark">T</span><span>TECH<span>STORE</span><small>UGANDA</small></span></a><p>Shop smart. Stay connected.</p><small>© {new Date().getFullYear()} Tech Store Uganda</small></footer>
+    <footer><a className="brand" href="/"><img className="brand-mark" src="/tech-store-icon.svg" alt="" /><span>TECH<span>STORE</span><small>UGANDA</small></span></a><p>Shop smart. Stay connected.</p><small>© {new Date().getFullYear()} Tech Store Uganda</small></footer>
 
     {cartOpen && <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setCartOpen(false); }}><aside className="drawer"><div className="drawer-head"><div><span className="eyebrow">YOUR SELECTION</span><h2>Shopping cart</h2></div><button className="close" onClick={() => setCartOpen(false)}><X/></button></div>
       {!cart.length ? <div className="empty"><ShoppingBag/><h3>Your cart is empty</h3><p>Add products from the catalogue to get started.</p></div> : <><div className="cart-items">{cart.map((p) => <div className="cart-row" key={p.id}><div className="cart-thumb">{p.image_url ? <img src={p.image_url} alt=""/> : <Laptop/>}</div><div className="cart-copy"><b>{p.name}</b><strong>{money(p.price_ugx)}</strong><div className="qty"><button onClick={() => quantity(p.id, -1)}><Minus size={13}/></button>{p.quantity}<button onClick={() => quantity(p.id, 1)}><Plus size={13}/></button></div></div></div>)}</div><div className="total"><span>Subtotal</span><b>{money(total)}</b></div><button className="checkout" onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}>Continue to checkout <ArrowRight size={17}/></button></>}
