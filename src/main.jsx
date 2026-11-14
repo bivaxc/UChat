@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Search, ShoppingBag, ArrowRight, Laptop, Smartphone, Headphones, Cable, ShieldCheck, X, Plus, Minus, RefreshCw } from 'lucide-react';
 import './style.css';
 
-const API = (import.meta.env.VITE_STORE_API_URL || '').replace(/\/$/, '');
+const API = (import.meta.env.VITE_STORE_API_URL || 'https://gwtvbyrfjjyvcaxdnfex.supabase.co/functions/v1/tech-store-api').replace(/\/$/, '');
 const money = (n) => new Intl.NumberFormat('en-UG', { style: 'currency', currency: 'UGX', maximumFractionDigits: 0 }).format(Number(n || 0));
 
 function App() {
